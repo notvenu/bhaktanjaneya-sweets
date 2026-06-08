@@ -1,4 +1,5 @@
 import Link from "next/link";
+import Image from "next/image";
 import { MapPin, Phone, Mail, ShieldCheck } from "lucide-react";
 import { Container } from "@/components/ui/Container";
 import { NewsletterForm } from "@/components/NewsletterForm";
@@ -69,10 +70,14 @@ export function Footer() {
         <div className="grid grid-cols-2 gap-10 py-14 md:grid-cols-3 lg:grid-cols-6">
           {/* Brand */}
           <div className="col-span-2 lg:col-span-2">
-            <Link href="/" className="inline-flex items-center gap-2">
-              <span className="flex h-10 w-10 items-center justify-center rounded-full bg-saffron-500 font-serif text-lg font-bold text-maroon-900">
-                B
-              </span>
+            <Link href="/" className="inline-flex items-center gap-3">
+              <Image
+                src="/images/logo.png"
+                alt="Bhaktanjaneya Sweets"
+                width={56}
+                height={56}
+                className="h-14 w-14 shrink-0 rounded-full"
+              />
               <span className="font-serif text-xl font-bold leading-tight">
                 Bhaktanjaneya
                 <span className="block text-sm font-medium text-saffron-300">

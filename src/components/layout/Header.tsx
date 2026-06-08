@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import {
@@ -59,9 +60,14 @@ export function Header() {
 
           {/* Logo */}
           <Link href="/" className="flex items-center gap-2.5">
-            <span className="flex h-10 w-10 items-center justify-center rounded-full bg-maroon-800 font-serif text-lg font-bold text-saffron-400 shadow-soft">
-              B
-            </span>
+            <Image
+              src="/images/logo.png"
+              alt="Bhaktanjaneya Sweets"
+              width={48}
+              height={48}
+              priority
+              className="h-11 w-11 shrink-0 rounded-full sm:h-12 sm:w-12"
+            />
             <span className="font-serif text-lg font-bold leading-none text-maroon-900 sm:text-xl">
               Bhaktanjaneya
               <span className="block text-[11px] font-medium uppercase tracking-[0.2em] text-saffron-600">
