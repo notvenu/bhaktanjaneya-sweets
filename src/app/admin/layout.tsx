@@ -6,11 +6,14 @@ import { AdminShell } from "@/components/admin/AdminShell";
 
 function AdminGate({ children }: { children: React.ReactNode }) {
   const { hydrated, session } = useAdmin();
-
-  // Avoid an auth flash before localStorage is read.
-  if (!hydrated) return <div className="min-h-screen bg-cream-50" />;
-  if (!session) return <AdminLogin />;
-  return <AdminShell>{children}</AdminShell>;
+  // Root element must be stable between server and client to avoid
+  // hydration mismatches. Render a consistent container, then swap
+  // the inner content once hydration/session is known.
+  return (
+    <div className="min-h-screen bg-cream-50">
+      {!hydrated ? null : !session ? <AdminLogin /> : <AdminShell>{children}</AdminShell>}
+    </div>
+  );
 }
 
 export default function AdminLayout({

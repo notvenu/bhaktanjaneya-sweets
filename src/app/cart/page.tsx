@@ -19,7 +19,7 @@ import { useCart } from "@/context/CartContext";
 import { useAuth } from "@/context/AuthContext";
 import { getActiveOffers } from "@/lib/api/offers";
 import { createRazorpayOrder } from "@/lib/api/payments";
-import { recordOrder } from "@/lib/admin/store";
+import { createOrder } from "@/lib/api/orders";
 import { waLink, cartOrderMessage } from "@/lib/whatsapp";
 import { config } from "@/lib/config";
 import { formatINR, uid } from "@/lib/utils";
@@ -51,13 +51,6 @@ export default function CartPage() {
   useEffect(() => {
     getActiveOffers().then(setOffers).catch(() => setOffers([]));
   }, []);
-
-  useEffect(() => {
-    if (customer) {
-      setPhone((p) => p || customer.phone);
-      setName((n) => n || customer.name || "");
-    }
-  }, [customer]);
 
   const discount = useMemo(() => discountFor(offer, subtotal), [offer, subtotal]);
   const freeShipping =
@@ -116,11 +109,16 @@ export default function CartPage() {
       setFormError("Please enter a valid phone number so we can confirm your order.");
       return;
     }
-    recordOrder(buildOrder());
-    const msg = cartOrderMessage(items, { name, phone: digits, subtotal: total });
-    window.open(waLink(msg), "_blank", "noopener,noreferrer");
-    clear();
-    setPlaced(true);
+    createOrder(buildOrder())
+      .then(() => {
+        const msg = cartOrderMessage(items, { name, phone: digits, subtotal: total });
+        window.open(waLink(msg), "_blank", "noopener,noreferrer");
+        clear();
+        setPlaced(true);
+      })
+      .catch((error) => {
+        setFormError(error instanceof Error ? error.message : "Could not create order.");
+      });
   }
 
   async function payOnline() {
@@ -366,13 +364,13 @@ export default function CartPage() {
               </h2>
               <div className="mt-3 space-y-3">
                 <input
-                  value={name}
+                  value={name || customer?.name || ""}
                   onChange={(e) => setName(e.target.value)}
                   placeholder="Your name"
                   className="h-11 w-full rounded-xl border border-cream-300 bg-white px-4 text-sm focus:border-saffron-400 focus:outline-none focus:ring-2 focus:ring-saffron-400/40"
                 />
                 <input
-                  value={phone}
+                  value={phone || customer?.phone || ""}
                   onChange={(e) => setPhone(e.target.value)}
                   inputMode="tel"
                   placeholder="Phone number"

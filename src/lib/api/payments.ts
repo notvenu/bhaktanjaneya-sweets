@@ -1,4 +1,3 @@
-import { config } from "@/lib/config";
 import { apiPost } from "./client";
 
 // ─── Razorpay seam (phase 2) ───────────────────────────────────────────────
@@ -9,7 +8,6 @@ import { apiPost } from "./client";
 //   3. On success, Checkout returns a signature; send it to
 //      verifyRazorpayPayment(...) so the backend can verify it (HMAC-SHA256
 //      with key_secret) before marking the order paid.
-// While useMock=true these throw, signalling the backend isn't connected yet.
 
 export interface RazorpayOrder {
   id: string;
@@ -27,11 +25,6 @@ export interface RazorpayVerifyPayload {
 export async function createRazorpayOrder(
   amountInr: number,
 ): Promise<RazorpayOrder> {
-  if (config.useMock) {
-    throw new Error(
-      "Online payment isn't connected yet. Order on WhatsApp for now.",
-    );
-  }
   return apiPost<RazorpayOrder>("/payments/razorpay/order", {
     amount: amountInr * 100,
   });
@@ -40,8 +33,5 @@ export async function createRazorpayOrder(
 export async function verifyRazorpayPayment(
   payload: RazorpayVerifyPayload,
 ): Promise<{ verified: boolean }> {
-  if (config.useMock) {
-    throw new Error("Online payment isn't connected yet.");
-  }
   return apiPost<{ verified: boolean }>("/payments/razorpay/verify", payload);
 }

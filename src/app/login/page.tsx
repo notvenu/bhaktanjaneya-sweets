@@ -2,6 +2,7 @@
 
 import { Suspense, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
+import Link from "next/link";
 import { Phone, ShieldCheck, ArrowRight, ArrowLeft } from "lucide-react";
 import { Container } from "@/components/ui/Container";
 import { useAuth } from "@/context/AuthContext";
@@ -139,13 +140,13 @@ function LoginInner() {
 
       <p className="mt-6 text-center text-xs text-ink-400">
         By continuing you agree to {config.businessName}&apos;s{" "}
-        <a href="/policies/terms" className="underline">
+        <Link href="/policies/terms" className="underline">
           Terms
-        </a>{" "}
+        </Link>{" "}
         &amp;{" "}
-        <a href="/policies/privacy" className="underline">
+        <Link href="/policies/privacy" className="underline">
           Privacy Policy
-        </a>
+        </Link>
         .
       </p>
     </div>

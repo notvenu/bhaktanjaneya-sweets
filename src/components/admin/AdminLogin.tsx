@@ -3,7 +3,6 @@
 import { useState } from "react";
 import { ShieldCheck, ArrowRight } from "lucide-react";
 import { useAdmin } from "@/context/AdminContext";
-import { DEMO_ADMIN } from "@/lib/api/adminAuth";
 import { config } from "@/lib/config";
 import { inputClass } from "./ui";
 
@@ -75,13 +74,6 @@ export function AdminLogin() {
           </button>
         </form>
 
-        {config.useMock && (
-          <div className="mt-5 rounded-xl bg-cream-100 px-4 py-3 text-xs text-ink-500">
-            <p className="font-semibold text-maroon-800">Demo credentials</p>
-            <p className="mt-1">Email: {DEMO_ADMIN.email}</p>
-            <p>Password: {DEMO_ADMIN.password}</p>
-          </div>
-        )}
       </div>
     </div>
   );

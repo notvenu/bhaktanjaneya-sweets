@@ -39,6 +39,7 @@ export function ProductCarousel({
 
   useEffect(() => {
     if (!emblaApi) return;
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     onSelect();
     emblaApi.on("select", onSelect).on("reInit", onSelect);
   }, [emblaApi, onSelect]);

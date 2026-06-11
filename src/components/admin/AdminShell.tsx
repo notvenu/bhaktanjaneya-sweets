@@ -11,7 +11,7 @@ import {
   Users,
   LogOut,
   ExternalLink,
-  RotateCcw,
+  RefreshCw,
 } from "lucide-react";
 import { useAdmin } from "@/context/AdminContext";
 import { config } from "@/lib/config";
@@ -28,20 +28,10 @@ const NAV = [
 
 export function AdminShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
-  const { session, logout, resetDemoData } = useAdmin();
+  const { session, logout, refreshData } = useAdmin();
 
   function isActive(href: string, exact?: boolean) {
     return exact ? pathname === href : pathname.startsWith(href);
-  }
-
-  function handleReset() {
-    if (
-      window.confirm(
-        "Reset all demo data (products, offers, orders, customers) back to the seed catalog? This clears local changes.",
-      )
-    ) {
-      resetDemoData();
-    }
   }
 
   return (
@@ -93,11 +83,11 @@ export function AdminShell({ children }: { children: React.ReactNode }) {
           <div className="flex items-center gap-2">
             <button
               type="button"
-              onClick={handleReset}
-              title="Reset demo data"
+              onClick={refreshData}
+              title="Refresh Supabase data"
               className="hidden items-center gap-1.5 rounded-lg border border-cream-300 px-3 py-2 text-xs font-medium text-ink-600 hover:bg-cream-100 sm:inline-flex"
             >
-              <RotateCcw size={14} /> Reset data
+              <RefreshCw size={14} /> Refresh
             </button>
             <Link
               href="/"
