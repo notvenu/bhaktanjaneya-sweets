@@ -2,6 +2,7 @@
 
 import { useRef, useState } from "react";
 import Image from "next/image";
+import { getCategoryImage } from "@/lib/images";
 import { Plus, Pencil, Trash2, FolderTree, Upload } from "lucide-react";
 import { useAdmin } from "@/context/AdminContext";
 import { uploadCategoryImage } from "@/lib/api/upload";
@@ -222,13 +223,7 @@ export default function AdminCategoriesPage() {
               >
                 <div className="mb-4 flex justify-center">
                   <div className="relative h-16 w-16 overflow-hidden rounded-full border border-cream-300 bg-cream-50">
-                    {c.image ? (
-                      <Image src={c.image} alt={c.name} fill className="object-cover" sizes="64px" />
-                    ) : (
-                      <span className="flex h-full w-full items-center justify-center font-serif text-lg text-maroon-800">
-                        {c.name.charAt(0)}
-                      </span>
-                    )}
+                    <Image src={getCategoryImage(c)} alt={c.name} fill className="object-cover" sizes="64px" />
                   </div>
                 </div>
                 <div className="flex items-start justify-between gap-3">

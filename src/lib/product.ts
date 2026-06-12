@@ -1,4 +1,5 @@
 import type { CartItem, Product, Variant } from "./types";
+import { getProductImage } from "./images";
 
 /** Lowest-priced variant — used as the quick-add default on cards. */
 export function defaultVariant(p: Product): Variant {
@@ -42,16 +43,22 @@ export function featuredScore(p: Product): number {
 /** Sort a product list by the shop's sort key. Returns a new array. */
 export function sortProducts(items: Product[], sort: string): Product[] {
   const arr = [...items];
+  const availability = (p: Product) => (inStock(p) ? 0 : 1);
+  const byName = (a: Product, b: Product) => a.name.localeCompare(b.name);
   switch (sort) {
     case "price-asc":
-      return arr.sort((a, b) => priceRange(a).min - priceRange(b).min);
+      return arr.sort((a, b) => availability(a) - availability(b) || priceRange(a).min - priceRange(b).min || byName(a, b));
     case "price-desc":
-      return arr.sort((a, b) => priceRange(b).min - priceRange(a).min);
+      return arr.sort((a, b) => availability(a) - availability(b) || priceRange(b).min - priceRange(a).min || byName(a, b));
     case "rating":
-      return arr.sort((a, b) => b.rating - a.rating);
+      return arr.sort((a, b) => availability(a) - availability(b) || b.rating - a.rating || byName(a, b));
     default:
       return arr.sort(
-        (a, b) => featuredScore(b) - featuredScore(a) || b.rating - a.rating,
+        (a, b) =>
+          availability(a) - availability(b) ||
+          featuredScore(b) - featuredScore(a) ||
+          b.rating - a.rating ||
+          byName(a, b),
       );
   }
 }
@@ -62,10 +69,12 @@ export function toCartItem(p: Product, v: Variant, quantity = 1): CartItem {
     productId: p.id,
     slug: p.slug,
     name: p.name,
-    image: p.images[0],
+    image: getProductImage(p),
     variantId: v.id,
     variantLabel: v.label,
     price: v.price,
     quantity,
+    taxRate: p.taxRate ?? 0,
+    extraCharges: p.extraCharges ?? 0,
   };
 }

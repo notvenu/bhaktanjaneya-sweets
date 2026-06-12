@@ -1,54 +1,74 @@
-import { config } from "@/lib/config";
+"use client";
 
-// Fetch wrapper for browser calls to the Next.js API routes (/api/*).
+/**
+ * Production-ready API client with structured error handling.
+ * Converts failed responses into a standard ApiError that can be caught by UI components.
+ */
+export class ApiError extends Error {
+  constructor(public message: string, public status: number, public data?: any) {
+    super(message);
+    this.name = "ApiError";
+  }
+}
 
-function readStoredToken(): string | undefined {
-  if (typeof window === "undefined") return undefined;
-  const keys = ["bas_admin_session", "bas_session"];
-  for (const key of keys) {
+/** Same-origin Next.js API routes live under /api. Empty env must still resolve to /api. */
+const API_BASE = (process.env.NEXT_PUBLIC_API_BASE_URL || "/api").replace(/\/$/, "");
+
+function authTokenFor(path: string): string | null {
+  if (typeof window === "undefined") return null;
+
+  const readToken = (key: string) => {
     try {
       const raw = window.localStorage.getItem(key);
-      if (!raw) continue;
-      const parsed = JSON.parse(raw) as { token?: string };
-      if (parsed.token) return parsed.token;
+      if (!raw) return null;
+      const { token } = JSON.parse(raw) as { token?: string };
+      return token ?? null;
     } catch {
-      /* ignore */
+      return null;
     }
+  };
+
+  if (path.startsWith("/admin/")) {
+    return readToken("bas_admin_session") ?? readToken("bas_session");
   }
-  return undefined;
+  return readToken("bas_session");
 }
 
-async function req<T>(path: string, init?: RequestInit): Promise<T> {
-  const token = readStoredToken();
-  const baseUrl = config.apiBaseUrl || config.siteUrl || "http://localhost:3000";
-  const resolvedPath = config.apiBaseUrl
-    ? path
-    : path.startsWith("/api/")
-      ? path
-      : path.startsWith("/api")
-        ? path
-        : `/api${path.startsWith("/") ? path : `/${path}`}`;
-  const url = path.startsWith("http") ? path : new URL(resolvedPath, baseUrl).toString();
-  const res = await fetch(url, {
-    ...init,
-    headers: {
-      "Content-Type": "application/json",
-      ...(token ? { Authorization: `Bearer ${token}` } : {}),
-      ...(init?.headers ?? {}),
-    },
+async function request<T>(path: string, options: RequestInit = {}): Promise<T> {
+  const headers = new Headers(options.headers);
+  if (!headers.has("Content-Type")) {
+    headers.set("Content-Type", "application/json");
+  }
+
+  const token = authTokenFor(path);
+  if (token) headers.set("Authorization", `Bearer ${token}`);
+
+  const response = await fetch(`${API_BASE}${path}`, {
+    ...options,
+    headers,
   });
-  if (!res.ok) {
-    throw new Error(`${init?.method ?? "GET"} ${path} → ${res.status}`);
+
+  if (!response.ok) {
+    let errorData: { error?: string; message?: string } = {};
+    try {
+      errorData = await response.json();
+    } catch {
+      errorData = { message: response.statusText };
+    }
+    const message =
+      errorData.error ??
+      errorData.message ??
+      response.statusText ??
+      "An unexpected error occurred";
+    throw new ApiError(message, response.status, errorData);
   }
-  return (res.status === 204 ? (undefined as T) : ((await res.json()) as T));
+
+  if (response.status === 204) return {} as T;
+  return response.json();
 }
 
-export const apiGet = <T>(path: string) => req<T>(path);
-export const apiPost = <T>(path: string, body?: unknown) =>
-  req<T>(path, { method: "POST", body: JSON.stringify(body ?? {}) });
-export const apiPut = <T>(path: string, body?: unknown) =>
-  req<T>(path, { method: "PUT", body: JSON.stringify(body ?? {}) });
-export const apiPatch = <T>(path: string, body?: unknown) =>
-  req<T>(path, { method: "PATCH", body: JSON.stringify(body ?? {}) });
-export const apiDelete = <T>(path: string) =>
-  req<T>(path, { method: "DELETE" });
+export const apiGet = <T>(path: string) => request<T>(path, { method: "GET" });
+export const apiPost = <T>(path: string, body: any) => request<T>(path, { method: "POST", body: JSON.stringify(body) });
+export const apiPut = <T>(path: string, body: any) => request<T>(path, { method: "PUT", body: JSON.stringify(body) });
+export const apiPatch = <T>(path: string, body: any) => request<T>(path, { method: "PATCH", body: JSON.stringify(body) });
+export const apiDelete = <T>(path: string) => request<T>(path, { method: "DELETE" });

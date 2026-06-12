@@ -6,6 +6,7 @@ import { Container } from "@/components/ui/Container";
 import { ProductGrid } from "@/components/product/ProductGrid";
 import { getCategory, getCategories } from "@/lib/api/categories";
 import { getProductsByCategory } from "@/lib/api/products";
+import { getCategoryImage } from "@/lib/images";
 import { sortProducts } from "@/lib/product";
 
 export async function generateStaticParams() {
@@ -40,17 +41,15 @@ export default async function CollectionPage(
       <section className="bg-gradient-to-br from-maroon-800 to-maroon-900">
         <Container>
           <div className="flex items-center gap-6 py-12 sm:py-16">
-            {category.image && (
-              <div className="hidden h-28 w-28 shrink-0 items-center justify-center rounded-2xl bg-cream-50/10 ring-1 ring-cream-50/20 sm:flex">
-                <Image
-                  src={category.image}
-                  alt={category.name}
-                  width={80}
-                  height={80}
-                  className="h-20 w-20 object-contain"
-                />
-              </div>
-            )}
+            <div className="hidden h-28 w-28 shrink-0 items-center justify-center rounded-2xl bg-cream-50/10 ring-1 ring-cream-50/20 sm:flex">
+              <Image
+                src={getCategoryImage(category)}
+                alt={category.name}
+                width={80}
+                height={80}
+                className="h-20 w-20 object-contain"
+              />
+            </div>
             <div>
               <nav className="mb-2 text-xs text-cream-100/70">
                 <Link href="/" className="hover:text-saffron-300">

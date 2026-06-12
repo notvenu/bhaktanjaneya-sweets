@@ -2,6 +2,7 @@
 
 import { useMemo, useState } from "react";
 import Image from "next/image";
+import { getProductImage } from "@/lib/images";
 import { Plus, Search, Pencil, Trash2, Package } from "lucide-react";
 import { useAdmin } from "@/context/AdminContext";
 import { ProductEditor } from "@/components/admin/ProductEditor";
@@ -96,15 +97,13 @@ export default function AdminProductsPage() {
                       <td className="px-4 py-3">
                         <div className="flex items-center gap-3">
                           <span className="relative h-11 w-11 shrink-0 overflow-hidden rounded-lg bg-cream-100">
-                            {p.images[0] && (
-                              <Image
-                                src={p.images[0]}
-                                alt={p.name}
-                                fill
-                                sizes="44px"
-                                className="object-cover"
-                              />
-                            )}
+                            <Image
+                              src={getProductImage(p)}
+                              alt={p.name}
+                              fill
+                              sizes="44px"
+                              className="object-cover"
+                            />
                           </span>
                           <div className="min-w-0">
                             <p className="truncate font-medium text-maroon-900">

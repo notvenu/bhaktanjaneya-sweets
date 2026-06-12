@@ -2,18 +2,19 @@
 
 import Image from "next/image";
 import { useState } from "react";
+import { getProductImages } from "@/lib/images";
 import { cn } from "@/lib/utils";
 
 export function ProductGallery({
   images,
   name,
+  category,
 }: {
   images: string[];
   name: string;
+  category: string;
 }) {
-  const imgs = images.length
-    ? images
-    : ["/images/products/sweets-placeholder.svg"];
+  const imgs = getProductImages({ images, category });
   const [active, setActive] = useState(0);
 
   return (

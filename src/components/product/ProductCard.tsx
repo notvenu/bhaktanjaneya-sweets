@@ -14,6 +14,7 @@ import {
   bestDiscountPct,
   toCartItem,
 } from "@/lib/product";
+import { getProductImage } from "@/lib/images";
 import { waLink, productEnquiryMessage } from "@/lib/whatsapp";
 import { formatINR, cn } from "@/lib/utils";
 
@@ -56,7 +57,7 @@ export function ProductCard({
     >
       <Link href={href} className="relative block aspect-square overflow-hidden bg-cream-100">
         <Image
-          src={product.images[0]}
+          src={getProductImage(product)}
           alt={product.name}
           fill
           sizes="(max-width: 640px) 50vw, (max-width: 1024px) 33vw, 280px"

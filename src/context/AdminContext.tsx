@@ -49,7 +49,12 @@ interface AdminContextValue {
   deleteCategory: (id: string) => void;
   saveOffer: (offer: Offer) => void;
   deleteOffer: (id: string) => void;
-  updateOrderStatus: (id: string, status: OrderStatus) => void;
+  updateOrderStatus: (
+    id: string,
+    status: OrderStatus,
+    deliveryDetails?: { deliveryCompany: string; deliveryTrackingId: string },
+  ) => Promise<Order>;
+  updateOrder: (id: string, patch: Partial<Order>) => Promise<Order>;
   refreshData: () => void;
 }
 
@@ -172,10 +177,26 @@ export function AdminProvider({ children }: { children: React.ReactNode }) {
     });
   }, []);
 
-  const updateOrderStatus = useCallback((id: string, status: OrderStatus) => {
-    void apiPatch<Order>(`/admin/orders/${id}`, { status }).then((next) => {
+  const updateOrderStatus = useCallback(
+    async (
+      id: string,
+      status: OrderStatus,
+      deliveryDetails?: { deliveryCompany: string; deliveryTrackingId: string },
+    ) => {
+      const next = await apiPatch<Order>(`/admin/orders/${id}`, {
+        status,
+        ...deliveryDetails,
+      });
       setOrders((prev) => prev.map((o) => (o.id === id ? next : o)));
-    });
+      return next;
+    },
+    [],
+  );
+
+  const updateOrder = useCallback(async (id: string, patch: Partial<Order>) => {
+    const next = await apiPatch<Order>(`/admin/orders/${id}`, patch);
+    setOrders((prev) => prev.map((o) => (o.id === id ? next : o)));
+    return next;
   }, []);
 
   const refreshData = useCallback(() => {
@@ -201,6 +222,7 @@ export function AdminProvider({ children }: { children: React.ReactNode }) {
       saveOffer,
       deleteOffer,
       updateOrderStatus,
+      updateOrder,
       refreshData,
     }),
     [
@@ -221,6 +243,7 @@ export function AdminProvider({ children }: { children: React.ReactNode }) {
       saveOffer,
       deleteOffer,
       updateOrderStatus,
+      updateOrder,
       refreshData,
     ],
   );

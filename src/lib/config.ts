@@ -11,14 +11,16 @@ export const config = {
   /** Public site URL, used for SEO/Open Graph absolute URLs. */
   siteUrl: process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3000",
 
-  /** Optional base URL for the Next API. Empty means same-origin /api routes. */
-  apiBaseUrl: process.env.NEXT_PUBLIC_API_BASE_URL ?? "",
+  /** Base URL for the Next.js API routes. Empty env resolves to /api. */
+  apiBaseUrl: (process.env.NEXT_PUBLIC_API_BASE_URL || "/api").replace(/\/$/, ""),
 
   /** Razorpay publishable key id (phase 2). Secret stays on the backend. */
   razorpayKeyId: process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID ?? "",
 
   currency: "INR" as const,
   freeShippingThreshold: 700,
+  /** Flat delivery fee (INR) when cart is below freeShippingThreshold. */
+  shippingFee: 60,
 
   contact: {
     phone: "+91 99999 99999",

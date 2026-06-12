@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { Plus, Trash2 } from "lucide-react";
 import type { Category, Product, Variant } from "@/lib/types";
+import { defaultProductImage } from "@/lib/images";
 import { uid, slugify } from "@/lib/utils";
 import { Field, inputClass, Toggle, Modal, AdminButton } from "./ui";
 
@@ -32,6 +33,8 @@ function blankProduct(category: string): Draft {
     reviewCount: 0,
     active: true,
     badges: [],
+    taxRate: 0,
+    extraCharges: 0,
   };
 }
 
@@ -97,7 +100,7 @@ export function ProductEditor({
       slug: draft.slug.trim() || slugify(name),
       description: draft.description.trim(),
       categoryLabel: category?.name,
-      images: images.length ? images : ["/images/categories/sweets.svg"],
+      images: images.length ? images : [defaultProductImage(draft.category)],
       variants,
       rating: Number(draft.rating) || 0,
       reviewCount: Number(draft.reviewCount) || 0,
@@ -343,6 +346,31 @@ export function ProductEditor({
                 )
               }
               placeholder="Pure Ghee, 100% Veg"
+            />
+          </Field>
+        </div>
+
+        <div className="grid gap-4 sm:grid-cols-2">
+          <Field label="GST rate (%)" hint="Applied to the selling price at checkout, e.g. 5 for 5%.">
+            <input
+              className={inputClass}
+              type="number"
+              min={0}
+              max={100}
+              step={0.1}
+              value={draft.taxRate ?? 0}
+              onChange={(e) => set("taxRate", Number(e.target.value))}
+              placeholder="0"
+            />
+          </Field>
+          <Field label="Extra charges (₹)" hint="Flat amount per unit (packaging, handling, etc.).">
+            <input
+              className={inputClass}
+              type="number"
+              min={0}
+              value={draft.extraCharges ?? 0}
+              onChange={(e) => set("extraCharges", Number(e.target.value))}
+              placeholder="0"
             />
           </Field>
         </div>

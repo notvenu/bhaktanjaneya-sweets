@@ -92,7 +92,7 @@ export default async function ProductPage(props: PageProps<"/product/[slug]">) {
         </nav>
 
         <div className="grid gap-10 md:grid-cols-2">
-          <ProductGallery images={product.images} name={product.name} />
+          <ProductGallery images={product.images} name={product.name} category={product.category} />
 
           <div>
             {product.categoryLabel && (

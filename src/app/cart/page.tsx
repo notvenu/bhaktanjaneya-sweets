@@ -1,29 +1,41 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import {
   Minus,
   Plus,
   Trash2,
-  MessageCircle,
   CreditCard,
+  Banknote,
   Tag,
   ShoppingBag,
   Check,
   ArrowLeft,
+  Loader2,
 } from "lucide-react";
 import { Container } from "@/components/ui/Container";
+import { Alert } from "@/components/ui/Alert";
 import { useCart } from "@/context/CartContext";
 import { useAuth } from "@/context/AuthContext";
 import { getActiveOffers } from "@/lib/api/offers";
-import { createRazorpayOrder } from "@/lib/api/payments";
+import { lookupPincode } from "@/lib/api/pincode";
+import type { PincodeLookup } from "@/lib/api/pincode";
+import { createRazorpayOrder, verifyRazorpayPayment } from "@/lib/api/payments";
 import { createOrder } from "@/lib/api/orders";
-import { waLink, cartOrderMessage } from "@/lib/whatsapp";
+import { getErrorDetails, getErrorMessage } from "@/lib/api/errors";
+import type { ErrorDetails } from "@/lib/api/errors";
+import { formatAddressLines, isCompleteAddress } from "@/lib/address";
 import { config } from "@/lib/config";
+import { INDIAN_STATES } from "@/lib/constants/india-states";
+import { STATE_DISTRICTS } from "@/lib/constants/india-locations";
+import { loadRazorpayScript, openRazorpayCheckout } from "@/lib/razorpay";
 import { formatINR, uid } from "@/lib/utils";
-import type { Offer, Order } from "@/lib/types";
+import type { Offer, Order, PaymentMethod, ShippingAddress } from "@/lib/types";
+
+const fieldClass =
+  "h-11 w-full rounded-xl border border-cream-300 bg-white px-4 text-sm focus:border-saffron-400 focus:outline-none focus:ring-2 focus:ring-saffron-400/40";
 
 function discountFor(offer: Offer | null, subtotal: number): number {
   if (!offer) return 0;
@@ -36,28 +48,104 @@ function discountFor(offer: Offer | null, subtotal: number): number {
 
 export default function CartPage() {
   const { items, subtotal, setQty, remove, clear } = useCart();
-  const { customer } = useAuth();
+  const { customer, updateCustomer } = useAuth();
 
   const [offers, setOffers] = useState<Offer[]>([]);
   const [code, setCode] = useState("");
   const [offer, setOffer] = useState<Offer | null>(null);
   const [codeError, setCodeError] = useState("");
-  const [name, setName] = useState("");
-  const [phone, setPhone] = useState("");
-  const [formError, setFormError] = useState("");
-  const [payNote, setPayNote] = useState("");
-  const [placed, setPlaced] = useState(false);
+
+  const [name, setName] = useState(customer?.name ?? "");
+  const [phone, setPhone] = useState(customer?.phone ?? "");
+  const [email, setEmail] = useState(customer?.email ?? "");
+  const [line1, setLine1] = useState("");
+  const [line2, setLine2] = useState("");
+  const [city, setCity] = useState("");
+  const [state, setState] = useState("");
+  const [district, setDistrict] = useState("");
+  const [pincode, setPincode] = useState("");
+  const [notes, setNotes] = useState("");
+  const [saveAddress, setSaveAddress] = useState(true);
+  const [addressMode, setAddressMode] = useState<"saved" | "new">("new");
+  const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>("razorpay");
+
+  const [checkoutError, setCheckoutError] = useState<ErrorDetails | null>(null);
+  const [placing, setPlacing] = useState(false);
+  const [placed, setPlaced] = useState<{ id: string; method: PaymentMethod } | null>(null);
+  const [pincodeDetails, setPincodeDetails] = useState<PincodeLookup | null>(null);
+  const [lookingUpPincode, setLookingUpPincode] = useState(false);
+  const [pincodeHint, setPincodeHint] = useState("");
+  const lastLookupPincode = useRef("");
+
+  const hasSavedAddress = isCompleteAddress(customer?.savedAddress);
+
+  useEffect(() => {
+    if (hasSavedAddress) {
+      setAddressMode("saved");
+    }
+  }, [hasSavedAddress]);
+
+  useEffect(() => {
+    if (customer?.name) setName((prev) => prev || customer.name || "");
+    if (customer?.phone) setPhone((prev) => prev || customer.phone);
+    if (customer?.email) setEmail((prev) => prev || customer.email || "");
+    if (customer?.savedAddress) {
+      setLine1((prev) => prev || customer.savedAddress?.line1 || "");
+      setLine2((prev) => prev || customer.savedAddress?.line2 || "");
+      setCity((prev) => prev || customer.savedAddress?.city || "");
+      setState((prev) => prev || customer.savedAddress?.state || "");
+      setDistrict((prev) => prev || customer.savedAddress?.district || "");
+      setPincode((prev) => prev || customer.savedAddress?.pincode || "");
+    }
+  }, [customer]);
 
   useEffect(() => {
     getActiveOffers().then(setOffers).catch(() => setOffers([]));
   }, []);
+
+  const districtOptions = useMemo(() => {
+    if (!pincodeDetails?.postOffices?.length) return [];
+    return Array.from(new Set(pincodeDetails.postOffices.map((po) => po.district).filter(Boolean)));
+  }, [pincodeDetails]);
+
+  useEffect(() => {
+    if (addressMode !== "new") return;
+    const nextPincode = pincode.trim();
+    if (!/^\d{6}$/.test(nextPincode) || nextPincode === lastLookupPincode.current) {
+      return;
+    }
+    void findAddressByPincode();
+  }, [pincode, addressMode]);
+
+  const orderedItems = useMemo(
+    () =>
+      [...items].sort(
+        (a, b) =>
+          a.name.localeCompare(b.name) ||
+          a.variantLabel.localeCompare(b.variantLabel),
+      ),
+    [items],
+  );
+
+  const { taxAmount, extraChargesAmount } = useMemo(() => {
+    return items.reduce((acc, item) => {
+      // item.taxRate is % (e.g. 5), item.extraCharges is flat INR
+      const tax = Math.round((item.price * (item.taxRate || 0)) / 100) * item.quantity;
+      const extra = (item.extraCharges || 0) * item.quantity;
+      return {
+        taxAmount: acc.taxAmount + tax,
+        extraChargesAmount: acc.extraChargesAmount + extra
+      };
+    }, { taxAmount: 0, extraChargesAmount: 0 });
+  }, [items]);
 
   const discount = useMemo(() => discountFor(offer, subtotal), [offer, subtotal]);
   const freeShipping =
     subtotal >= config.freeShippingThreshold ||
     (offer?.type === "free_shipping" &&
       (!offer.minSubtotal || subtotal >= offer.minSubtotal));
-  const total = Math.max(0, subtotal - discount);
+  const shipping = freeShipping ? 0 : config.shippingFee;
+  const total = Math.max(0, subtotal - discount + shipping + taxAmount + extraChargesAmount);
 
   function applyCode() {
     setCodeError("");
@@ -79,12 +167,53 @@ export default function CartPage() {
     setOffer(found);
   }
 
-  function buildOrder(): Order {
+  function getShippingAddress(): ShippingAddress {
+    if (addressMode === "saved" && customer?.savedAddress && isCompleteAddress(customer.savedAddress)) {
+      return customer.savedAddress;
+    }
+    return {
+      line1: line1.trim(),
+      line2: line2.trim() || undefined,
+      city: city.trim(),
+      state,
+      district: district.trim() || undefined,
+      pincode: pincode.trim(),
+    };
+  }
+
+  function validateCheckout(): string | null {
+    const digits = phone.replace(/\D/g, "");
+    if (!name.trim()) return "Please enter your full name.";
+    if (digits.length < 10) return "Please enter a valid 10-digit phone number.";
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim())) {
+      return "Please enter a valid email address.";
+    }
+    if (addressMode === "saved") {
+      if (!isCompleteAddress(customer?.savedAddress)) {
+        return "Your saved address is incomplete. Please choose a different address or update it in your account.";
+      }
+      return null;
+    }
+    if (!line1.trim()) return "Please enter your street address.";
+    if (!city.trim()) return "Please enter your city.";
+    if (!state) return "Please select your state.";
+    if (!/^\d{6}$/.test(pincode.trim())) return "Please enter a valid 6-digit PIN code.";
+    return null;
+  }
+
+  function buildOrder(
+    method: PaymentMethod,
+    paymentStatus: Order["paymentStatus"],
+    extras?: Partial<Order>,
+  ): Order {
     return {
       id: uid("ord"),
-      customerPhone: phone.replace(/[^0-9]/g, ""),
-      customerName: name || undefined,
-      items: items.map((it) => ({
+      customerPhone: phone.replace(/\D/g, ""),
+      customerName: name.trim(),
+      customerEmail: email.trim(),
+      shippingAddress: getShippingAddress(),
+      notes: notes.trim() || undefined,
+      items: orderedItems.map((it) => ({
         productId: it.productId,
         name: it.name,
         variantLabel: it.variantLabel,
@@ -93,47 +222,148 @@ export default function CartPage() {
       })),
       subtotal,
       discount: discount || undefined,
-      shipping: freeShipping ? 0 : undefined,
+      shipping,
+      taxAmount,
+      extraChargesAmount,
       total,
-      channel: "whatsapp",
-      paymentStatus: "pending",
+      channel: "online",
+      paymentMethod: method,
+      paymentStatus,
       status: "new",
       createdAt: new Date().toISOString(),
+      ...extras,
     };
   }
 
-  function placeWhatsAppOrder() {
-    setFormError("");
-    const digits = phone.replace(/[^0-9]/g, "");
-    if (digits.length < 10) {
-      setFormError("Please enter a valid phone number so we can confirm your order.");
-      return;
+  async function saveCheckoutAddressIfNeeded() {
+    if (!customer || !saveAddress || addressMode !== "new") return;
+    try {
+      await updateCustomer({ savedAddress: getShippingAddress() });
+    } catch {
+      // Don't block checkout if saving the address fails.
     }
-    createOrder(buildOrder())
-      .then(() => {
-        const msg = cartOrderMessage(items, { name, phone: digits, subtotal: total });
-        window.open(waLink(msg), "_blank", "noopener,noreferrer");
-        clear();
-        setPlaced(true);
-      })
-      .catch((error) => {
-        setFormError(error instanceof Error ? error.message : "Could not create order.");
-      });
   }
 
-  async function payOnline() {
-    setPayNote("");
+  async function placeCodOrder() {
+    setCheckoutError(null);
+    const validationError = validateCheckout();
+    if (validationError) {
+      setCheckoutError({ title: "Check your details", message: validationError });
+      return;
+    }
+
+    setPlacing(true);
     try {
-      // Phase 2: backend creates the Razorpay order, then we open Checkout with
-      // the returned order id + keyId and verify the signature server-side.
-      await createRazorpayOrder(total);
-      // (Razorpay Checkout would open here once the backend is connected.)
-    } catch (e) {
-      setPayNote(
-        e instanceof Error
-          ? e.message
-          : "Online payment isn't available yet. Please order on WhatsApp.",
+      await saveCheckoutAddressIfNeeded();
+      const order = await createOrder(
+        buildOrder("cod", "cod"),
       );
+      clear();
+      setPlaced({ id: order.id, method: "cod" });
+    } catch (error) {
+      setCheckoutError(getErrorDetails(error, "Could not place order"));
+    } finally {
+      setPlacing(false);
+    }
+  }
+
+  async function placeRazorpayOrder() {
+    setCheckoutError(null);
+    const validationError = validateCheckout();
+    if (validationError) {
+      setCheckoutError({ title: "Check your details", message: validationError });
+      return;
+    }
+
+    setPlacing(true);
+    try {
+      await saveCheckoutAddressIfNeeded();
+      const loaded = await loadRazorpayScript();
+      if (!loaded) throw new Error("Could not load payment gateway. Please try again.");
+
+      const rzOrder = await createRazorpayOrder(total);
+      const pendingOrder = buildOrder("razorpay", "pending", {
+        razorpayOrderId: rzOrder.id,
+      });
+
+      openRazorpayCheckout({
+        key: rzOrder.keyId,
+        amount: rzOrder.amount,
+        currency: rzOrder.currency,
+        order_id: rzOrder.id,
+        name: config.businessName,
+        description: "Order payment",
+        prefill: {
+          name: name.trim(),
+          email: email.trim(),
+          contact: phone.replace(/\D/g, ""),
+        },
+        theme: { color: "#7f1d1d" },
+        handler: async (response) => {
+          try {
+            const { verified } = await verifyRazorpayPayment({
+              razorpay_order_id: response.razorpay_order_id,
+              razorpay_payment_id: response.razorpay_payment_id,
+              razorpay_signature: response.razorpay_signature,
+            });
+            if (!verified) throw new Error("Payment verification failed.");
+
+            const order = await createOrder({
+              ...pendingOrder,
+              paymentStatus: "paid",
+              razorpayOrderId: response.razorpay_order_id,
+              razorpayPaymentId: response.razorpay_payment_id,
+            });
+            clear();
+            setPlaced({ id: order.id, method: "razorpay" });
+          } catch (error) {
+            setCheckoutError(
+              getErrorDetails(error, "Payment succeeded but order could not be saved"),
+            );
+          } finally {
+            setPlacing(false);
+          }
+        },
+        modal: {
+          ondismiss: () => setPlacing(false),
+        },
+      });
+    } catch (error) {
+      setCheckoutError(
+        getErrorDetails(error, "Online payment unavailable"),
+      );
+      setPlacing(false);
+    }
+  }
+
+  function handlePlaceOrder() {
+    if (paymentMethod === "cod") void placeCodOrder();
+    else void placeRazorpayOrder();
+  }
+
+  async function findAddressByPincode() {
+    if (!/^\d{6}$/.test(pincode.trim())) return;
+
+    setPincodeHint("");
+    setLookingUpPincode(true);
+    try {
+      const details = await lookupPincode(pincode.trim());
+      lastLookupPincode.current = pincode.trim();
+      setPincodeDetails(details);
+      setCity((prev) => prev || details.city);
+      setState(details.state);
+      setDistrict((prev) => prev || details.district);
+
+      const dists = Array.from(new Set(details.postOffices.map((po) => po.district).filter(Boolean)));
+      if (dists.length === 1) {
+        setDistrict(dists[0]);
+      } else if (district && !dists.includes(district)) {
+        setDistrict("");
+      }
+    } catch (error) {
+      setPincodeHint(getErrorMessage(error, "Could not find this PIN code."));
+    } finally {
+      setLookingUpPincode(false);
     }
   }
 
@@ -145,11 +375,15 @@ export default function CartPage() {
             <Check size={32} />
           </span>
           <h1 className="mt-5 font-serif text-2xl font-bold text-maroon-900">
-            Almost done!
+            Order placed!
           </h1>
           <p className="mt-2 text-ink-600">
-            We&apos;ve opened WhatsApp with your order details. Just hit send and
-            we&apos;ll confirm availability, total, and delivery with you.
+            {placed.method === "cod"
+              ? "Your cash on delivery order is confirmed. We'll call you to confirm delivery details."
+              : "Payment received. We're preparing your order and will update you soon."}
+          </p>
+          <p className="mt-3 text-sm font-medium text-maroon-800">
+            Order #{placed.id.replace(/^ord_/, "").toUpperCase().slice(0, 8)}
           </p>
           <div className="mt-7 flex justify-center gap-3">
             <Link
@@ -199,9 +433,7 @@ export default function CartPage() {
   return (
     <div className="py-10">
       <Container>
-        <h1 className="font-serif text-3xl font-bold text-maroon-900">
-          Your Cart
-        </h1>
+        <h1 className="font-serif text-3xl font-bold text-maroon-900">Checkout</h1>
         <Link
           href="/shop"
           className="mt-2 inline-flex items-center gap-1.5 text-sm font-medium text-maroon-700 hover:text-saffron-600"
@@ -209,87 +441,297 @@ export default function CartPage() {
           <ArrowLeft size={15} /> Continue shopping
         </Link>
 
-        <div className="mt-8 grid gap-8 lg:grid-cols-[1fr_380px]">
-          {/* Line items */}
-          <ul className="divide-y divide-cream-200 rounded-2xl border border-cream-200 bg-white">
-            {items.map((it) => (
-              <li key={it.variantId} className="flex gap-4 p-4 sm:p-5">
-                <Link
-                  href={`/product/${it.slug}`}
-                  className="relative h-24 w-24 shrink-0 overflow-hidden rounded-xl border border-cream-200 bg-cream-100"
-                >
-                  {it.image && (
-                    <Image
-                      src={it.image}
-                      alt={it.name}
-                      fill
-                      sizes="96px"
-                      className="object-cover"
+        <div className="mt-8 grid gap-8 xl:grid-cols-[1fr_420px]">
+          <div className="space-y-6">
+            {/* Cart items */}
+            <section className="rounded-2xl border border-cream-200 bg-white">
+              <h2 className="border-b border-cream-200 px-5 py-4 font-serif text-lg font-bold text-maroon-900">
+                Your items ({items.length})
+              </h2>
+              <ul className="divide-y divide-cream-200">
+                {orderedItems.map((it) => (
+                  <li key={it.variantId} className="flex gap-4 p-4 sm:p-5">
+                    <Link
+                      href={`/product/${it.slug}`}
+                      className="relative h-24 w-24 shrink-0 overflow-hidden rounded-xl border border-cream-200 bg-cream-100"
+                    >
+                      {it.image && (
+                        <Image
+                          src={it.image}
+                          alt={it.name}
+                          fill
+                          sizes="96px"
+                          className="object-cover"
+                        />
+                      )}
+                    </Link>
+                    <div className="min-w-0 flex-1">
+                      <div className="flex justify-between gap-3">
+                        <div>
+                          <Link
+                            href={`/product/${it.slug}`}
+                            className="font-medium text-maroon-900 hover:text-saffron-600"
+                          >
+                            {it.name}
+                          </Link>
+                          <p className="text-sm text-ink-400">{it.variantLabel}</p>
+                          <p className="mt-0.5 text-sm text-ink-500">
+                            {formatINR(it.price)} each
+                          </p>
+                        </div>
+                        <button
+                          type="button"
+                          onClick={() => remove(it.variantId)}
+                          aria-label="Remove item"
+                          className="h-fit text-ink-400 hover:text-maroon-700"
+                        >
+                          <Trash2 size={18} />
+                        </button>
+                      </div>
+                      <div className="mt-3 flex items-center justify-between">
+                        <div className="inline-flex items-center rounded-full border border-cream-300 bg-white">
+                          <button
+                            type="button"
+                            aria-label="Decrease"
+                            onClick={() => setQty(it.variantId, it.quantity - 1)}
+                            className="flex h-9 w-9 items-center justify-center text-maroon-800 hover:bg-maroon-800/5"
+                          >
+                            <Minus size={15} />
+                          </button>
+                          <span className="w-10 text-center text-sm font-semibold">
+                            {it.quantity}
+                          </span>
+                          <button
+                            type="button"
+                            aria-label="Increase"
+                            onClick={() => setQty(it.variantId, it.quantity + 1)}
+                            className="flex h-9 w-9 items-center justify-center text-maroon-800 hover:bg-maroon-800/5"
+                          >
+                            <Plus size={15} />
+                          </button>
+                        </div>
+                        <span className="font-semibold text-maroon-900">
+                          {formatINR(it.price * it.quantity)}
+                        </span>
+                      </div>
+                    </div>
+                  </li>
+                ))}
+              </ul>
+            </section>
+
+            {/* Contact */}
+            <section className="rounded-2xl border border-cream-200 bg-white p-5">
+              <h2 className="font-serif text-lg font-bold text-maroon-900">
+                Contact details
+              </h2>
+              <p className="mt-1 text-sm text-ink-500">
+                Used for order updates and delivery confirmation.
+              </p>
+              <div className="mt-4 grid gap-3 sm:grid-cols-2">
+                <label className="text-sm font-medium text-maroon-900">
+                  Full name *
+                  <input
+                    value={name}
+                    onChange={(e) => setName(e.target.value)}
+                    placeholder="Your full name"
+                    className={`${fieldClass} mt-1.5`}
+                  />
+                </label>
+                <label className="text-sm font-medium text-maroon-900">
+                  Phone number *
+                  <input
+                    value={phone}
+                    onChange={(e) => setPhone(e.target.value.replace(/\D/g, "").slice(0, 10))}
+                    inputMode="tel"
+                    placeholder="9876543210"
+                    className={`${fieldClass} mt-1.5`}
+                  />
+                </label>
+                <label className="text-sm font-medium text-maroon-900 sm:col-span-2">
+                  Email address *
+                  <input
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    inputMode="email"
+                    placeholder="you@example.com"
+                    className={`${fieldClass} mt-1.5`}
+                  />
+                </label>
+              </div>
+            </section>
+
+            {/* Delivery address */}
+            <section className="rounded-2xl border border-cream-200 bg-white p-5">
+              <h2 className="font-serif text-lg font-bold text-maroon-900">
+                Delivery address
+              </h2>
+              <p className="mt-1 text-sm text-ink-500">
+                Add a complete address so the courier can find you without follow-up calls.
+              </p>
+
+              {hasSavedAddress && customer?.savedAddress ? (
+                <div className="mt-4 space-y-3">
+                  <label className="flex cursor-pointer items-start gap-3 rounded-xl border border-cream-300 p-4 has-[:checked]:border-maroon-800 has-[:checked]:bg-maroon-800/5">
+                    <input
+                      type="radio"
+                      name="addressMode"
+                      checked={addressMode === "saved"}
+                      onChange={() => setAddressMode("saved")}
+                      className="mt-1 accent-maroon-800"
+                    />
+                    <span>
+                      <span className="block text-sm font-semibold text-maroon-900">
+                        Use saved address
+                      </span>
+                      <span className="mt-1 block text-sm text-ink-600">
+                        {formatAddressLines(customer.savedAddress).join(" · ")}
+                      </span>
+                    </span>
+                  </label>
+                  <label className="flex cursor-pointer items-start gap-3 rounded-xl border border-cream-300 p-4 has-[:checked]:border-maroon-800 has-[:checked]:bg-maroon-800/5">
+                    <input
+                      type="radio"
+                      name="addressMode"
+                      checked={addressMode === "new"}
+                      onChange={() => setAddressMode("new")}
+                      className="mt-1 accent-maroon-800"
+                    />
+                    <span className="text-sm font-semibold text-maroon-900">
+                      Deliver to a different address
+                    </span>
+                  </label>
+                </div>
+              ) : null}
+
+              {addressMode === "new" ? (
+              <div className="mt-4 space-y-3">
+                <label className="block text-sm font-medium text-maroon-900">
+                  House / flat / street *
+                  <input
+                    value={line1}
+                    onChange={(e) => setLine1(e.target.value)}
+                    placeholder="House no., building, street"
+                    className={`${fieldClass} mt-1.5`}
+                  />
+                </label>
+                <label className="block text-sm font-medium text-maroon-900">
+                  Area / landmark
+                  <input
+                    value={line2}
+                    onChange={(e) => setLine2(e.target.value)}
+                    placeholder="Area, landmark, nearby place"
+                    className={`${fieldClass} mt-1.5`}
+                  />
+                </label>
+                <div className="grid gap-3 sm:grid-cols-3">
+                  <label className="text-sm font-medium text-maroon-900">
+                    City *
+                    <input
+                      value={city}
+                      onChange={(e) => setCity(e.target.value)}
+                      placeholder="City"
+                      className={`${fieldClass} mt-1.5`}
+                    />
+                  </label>
+                  <label className="text-sm font-medium text-maroon-900">
+                    State *
+                    <select
+                      value={state}
+                      onChange={(e) => {
+                        setState(e.target.value);
+                      }}
+                      className={`${fieldClass} mt-1.5`}
+                    >
+                      <option value="">Select state</option>
+                      {INDIAN_STATES.map((s) => (
+                        <option key={s} value={s}>
+                          {s}
+                        </option>
+                      ))}
+                    </select>
+                  </label>
+                  <label className="text-sm font-medium text-maroon-900">
+                    PIN code *
+                    <input
+                      value={pincode}
+                      onChange={(e) => {
+                        setPincode(e.target.value.replace(/\D/g, "").slice(0, 6));
+                        setPincodeHint("");
+                        if (e.target.value.replace(/\D/g, "").slice(0, 6).length < 6) {
+                          lastLookupPincode.current = "";
+                        }
+                      }}
+                      inputMode="numeric"
+                      placeholder="6-digit PIN"
+                      className={`${fieldClass} mt-1.5`}
+                    />
+                    {lookingUpPincode ? (
+                      <p className="mt-1 text-xs text-ink-500">Looking up city and state…</p>
+                    ) : pincodeHint ? (
+                      <p className="mt-1 text-xs text-maroon-700">{pincodeHint}</p>
+                    ) : null}
+                  </label>
+                </div>
+                <label className="block text-sm font-medium text-maroon-900">
+                  District
+                  {districtOptions.length > 0 ? (
+                    <select
+                      value={district}
+                      onChange={(e) => setDistrict(e.target.value)}
+                      className={`${fieldClass} mt-1.5`}
+                    >
+                      <option value="">Select district</option>
+                      {districtOptions.map((districtName) => (
+                        <option key={districtName} value={districtName}>
+                          {districtName}
+                        </option>
+                      ))}
+                    </select>
+                  ) : (
+                    <input
+                      value={district}
+                      onChange={(e) => setDistrict(e.target.value)}
+                      placeholder="Auto-filled from PIN"
+                      className={`${fieldClass} mt-1.5`}
                     />
                   )}
-                </Link>
-                <div className="min-w-0 flex-1">
-                  <div className="flex justify-between gap-3">
-                    <div>
-                      <Link
-                        href={`/product/${it.slug}`}
-                        className="font-medium text-maroon-900 hover:text-saffron-600"
-                      >
-                        {it.name}
-                      </Link>
-                      <p className="text-sm text-ink-400">{it.variantLabel}</p>
-                      <p className="mt-0.5 text-sm text-ink-500">
-                        {formatINR(it.price)} each
-                      </p>
-                    </div>
-                    <button
-                      type="button"
-                      onClick={() => remove(it.variantId)}
-                      aria-label="Remove item"
-                      className="h-fit text-ink-400 hover:text-maroon-700"
-                    >
-                      <Trash2 size={18} />
-                    </button>
-                  </div>
-                  <div className="mt-3 flex items-center justify-between">
-                    <div className="inline-flex items-center rounded-full border border-cream-300 bg-white">
-                      <button
-                        type="button"
-                        aria-label="Decrease"
-                        onClick={() => setQty(it.variantId, it.quantity - 1)}
-                        className="flex h-9 w-9 items-center justify-center text-maroon-800 hover:bg-maroon-800/5"
-                      >
-                        <Minus size={15} />
-                      </button>
-                      <span className="w-10 text-center text-sm font-semibold">
-                        {it.quantity}
-                      </span>
-                      <button
-                        type="button"
-                        aria-label="Increase"
-                        onClick={() => setQty(it.variantId, it.quantity + 1)}
-                        className="flex h-9 w-9 items-center justify-center text-maroon-800 hover:bg-maroon-800/5"
-                      >
-                        <Plus size={15} />
-                      </button>
-                    </div>
-                    <span className="font-semibold text-maroon-900">
-                      {formatINR(it.price * it.quantity)}
+                </label>
+                <label className="block text-sm font-medium text-maroon-900">
+                  Delivery instructions
+                  <textarea
+                    value={notes}
+                    onChange={(e) => setNotes(e.target.value)}
+                    placeholder="Preferred time, gate code, alternate contact..."
+                    rows={2}
+                    className={`${fieldClass} mt-1.5 h-auto resize-none py-3`}
+                  />
+                </label>
+                {customer && (
+                  <label className="flex items-start gap-2 rounded-xl bg-cream-50 px-3 py-2 text-sm text-ink-600">
+                    <input
+                      type="checkbox"
+                      checked={saveAddress}
+                      onChange={(e) => setSaveAddress(e.target.checked)}
+                      className="mt-1"
+                    />
+                    <span>
+                      Save this as my default delivery address for future orders.
                     </span>
-                  </div>
-                </div>
-              </li>
-            ))}
-          </ul>
+                  </label>
+                )}
+              </div>
+              ) : null}
+            </section>
+          </div>
 
-          {/* Summary + checkout */}
-          <div className="space-y-4">
+          {/* Summary + payment */}
+          <div className="space-y-4 xl:sticky xl:top-24 xl:self-start">
             <div className="rounded-2xl border border-cream-200 bg-white p-5">
               <h2 className="font-serif text-lg font-bold text-maroon-900">
-                Order Summary
+                Order summary
               </h2>
 
-              {/* Offer code */}
               <div className="mt-4">
                 {offer ? (
                   <div className="flex items-center justify-between rounded-xl bg-leaf-600/10 px-3 py-2 text-sm">
@@ -312,7 +754,7 @@ export default function CartPage() {
                     <input
                       value={code}
                       onChange={(e) => setCode(e.target.value)}
-                      placeholder="Promo code (try BAS10)"
+                      placeholder="Promo code"
                       className="h-10 flex-1 rounded-full border border-cream-300 bg-white px-4 text-sm focus:border-saffron-400 focus:outline-none focus:ring-2 focus:ring-saffron-400/40"
                     />
                     <button
@@ -325,16 +767,16 @@ export default function CartPage() {
                   </div>
                 )}
                 {codeError && (
-                  <p className="mt-1.5 text-xs text-maroon-700">{codeError}</p>
+                  <Alert tone="error" className="mt-2">
+                    {codeError}
+                  </Alert>
                 )}
               </div>
 
               <dl className="mt-4 space-y-2 border-t border-cream-200 pt-4 text-sm">
                 <div className="flex justify-between">
                   <dt className="text-ink-600">Subtotal</dt>
-                  <dd className="font-medium text-maroon-900">
-                    {formatINR(subtotal)}
-                  </dd>
+                  <dd className="font-medium text-maroon-900">{formatINR(subtotal)}</dd>
                 </div>
                 {discount > 0 && (
                   <div className="flex justify-between text-leaf-600">
@@ -342,70 +784,100 @@ export default function CartPage() {
                     <dd className="font-medium">-{formatINR(discount)}</dd>
                   </div>
                 )}
+                {taxAmount > 0 && (
+                  <div className="flex justify-between">
+                    <dt className="text-ink-600">GST</dt>
+                    <dd className="font-medium text-maroon-900">{formatINR(taxAmount)}</dd>
+                  </div>
+                )}
+                {extraChargesAmount > 0 && (
+                  <div className="flex justify-between">
+                    <dt className="text-ink-600">Extra Charges</dt>
+                    <dd className="font-medium text-maroon-900">{formatINR(extraChargesAmount)}</dd>
+                  </div>
+                )}
                 <div className="flex justify-between">
-                  <dt className="text-ink-600">Shipping</dt>
+                  <dt className="text-ink-600">Delivery</dt>
                   <dd className="font-medium text-maroon-900">
-                    {freeShipping ? "Free" : "Calculated at checkout"}
+                    {shipping === 0 ? "Free" : formatINR(shipping)}
                   </dd>
                 </div>
                 <div className="flex justify-between border-t border-cream-200 pt-2 text-base">
                   <dt className="font-semibold text-maroon-900">Total</dt>
-                  <dd className="font-bold text-maroon-900">
-                    {formatINR(total)}
-                  </dd>
+                  <dd className="font-bold text-maroon-900">{formatINR(total)}</dd>
                 </div>
               </dl>
             </div>
 
-            {/* Customer details */}
             <div className="rounded-2xl border border-cream-200 bg-white p-5">
               <h2 className="font-serif text-lg font-bold text-maroon-900">
-                Your details
+                Payment method
               </h2>
-              <div className="mt-3 space-y-3">
-                <input
-                  value={name || customer?.name || ""}
-                  onChange={(e) => setName(e.target.value)}
-                  placeholder="Your name"
-                  className="h-11 w-full rounded-xl border border-cream-300 bg-white px-4 text-sm focus:border-saffron-400 focus:outline-none focus:ring-2 focus:ring-saffron-400/40"
-                />
-                <input
-                  value={phone || customer?.phone || ""}
-                  onChange={(e) => setPhone(e.target.value)}
-                  inputMode="tel"
-                  placeholder="Phone number"
-                  className="h-11 w-full rounded-xl border border-cream-300 bg-white px-4 text-sm focus:border-saffron-400 focus:outline-none focus:ring-2 focus:ring-saffron-400/40"
-                />
+              <div className="mt-4 space-y-3">
+                <label className="flex cursor-pointer items-start gap-3 rounded-xl border border-cream-300 p-4 has-[:checked]:border-maroon-800 has-[:checked]:bg-maroon-800/5">
+                  <input
+                    type="radio"
+                    name="payment"
+                    value="razorpay"
+                    checked={paymentMethod === "razorpay"}
+                    onChange={() => setPaymentMethod("razorpay")}
+                    className="mt-1 accent-maroon-800"
+                  />
+                  <span>
+                    <span className="flex items-center gap-2 font-semibold text-maroon-900">
+                      <CreditCard size={18} /> Pay online
+                    </span>
+                    <span className="mt-0.5 block text-xs text-ink-500">
+                      UPI, cards, net banking via Razorpay
+                    </span>
+                  </span>
+                </label>
+                <label className="flex cursor-pointer items-start gap-3 rounded-xl border border-cream-300 p-4 has-[:checked]:border-maroon-800 has-[:checked]:bg-maroon-800/5">
+                  <input
+                    type="radio"
+                    name="payment"
+                    value="cod"
+                    checked={paymentMethod === "cod"}
+                    onChange={() => setPaymentMethod("cod")}
+                    className="mt-1 accent-maroon-800"
+                  />
+                  <span>
+                    <span className="flex items-center gap-2 font-semibold text-maroon-900">
+                      <Banknote size={18} /> Cash on delivery
+                    </span>
+                    <span className="mt-0.5 block text-xs text-ink-500">
+                      Pay when your order is delivered
+                    </span>
+                  </span>
+                </label>
               </div>
-              {formError && (
-                <p className="mt-2 text-xs text-maroon-700">{formError}</p>
+
+              {checkoutError && (
+                <Alert title={checkoutError.title} className="mt-4">
+                  {checkoutError.message}
+                  {checkoutError.hint ? (
+                    <p className="mt-1 text-xs opacity-90">{checkoutError.hint}</p>
+                  ) : null}
+                </Alert>
               )}
 
               <button
                 type="button"
-                onClick={placeWhatsAppOrder}
-                className="mt-4 flex h-12 w-full items-center justify-center gap-2 rounded-full bg-[#25D366] text-sm font-semibold text-white hover:bg-[#1fb457]"
+                onClick={handlePlaceOrder}
+                disabled={placing}
+                className="mt-4 flex h-12 w-full items-center justify-center gap-2 rounded-full bg-maroon-800 text-sm font-semibold text-cream-50 hover:bg-maroon-700 disabled:cursor-not-allowed disabled:opacity-60"
               >
-                <MessageCircle size={18} /> Place order on WhatsApp
+                {placing ? (
+                  <>
+                    <Loader2 size={18} className="animate-spin" />
+                    Processing…
+                  </>
+                ) : paymentMethod === "cod" ? (
+                  "Place order (COD)"
+                ) : (
+                  "Pay & place order"
+                )}
               </button>
-
-              <button
-                type="button"
-                onClick={payOnline}
-                className="mt-2 flex h-12 w-full items-center justify-center gap-2 rounded-full border border-maroon-800/30 text-sm font-semibold text-maroon-800 hover:bg-maroon-800/5"
-              >
-                <CreditCard size={18} /> Pay online
-                <span className="rounded-full bg-cream-200 px-2 py-0.5 text-[10px] font-bold uppercase text-ink-500">
-                  Soon
-                </span>
-              </button>
-              {payNote && (
-                <p className="mt-2 text-center text-xs text-ink-500">{payNote}</p>
-              )}
-
-              <p className="mt-3 text-center text-xs text-ink-400">
-                Your number is saved so we can confirm and update your order.
-              </p>
             </div>
           </div>
         </div>
