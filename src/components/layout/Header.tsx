@@ -38,12 +38,26 @@ export function Header() {
   const [menuOpen, setMenuOpen] = useState(false);
   const [q, setQ] = useState("");
 
+
+  
+
+
+
+
+
+
+
+
+
   function submitSearch(e: React.FormEvent<HTMLFormElement>) {
+
     e.preventDefault();
     const query = q.trim();
     setMenuOpen(false);
+    document.body.style.overflow = "";
     router.push(query ? `/shop?q=${encodeURIComponent(query)}` : "/shop");
   }
+
 
   return (
     <header className="sticky top-0 z-40 border-b border-cream-300/60 bg-cream-50/95 backdrop-blur supports-[backdrop-filter]:bg-cream-50/80">
@@ -52,7 +66,11 @@ export function Header() {
           {/* Mobile menu toggle */}
           <button
             type="button"
-            onClick={() => setMenuOpen(true)}
+            onClick={() => {
+              document.body.style.overflow = "hidden";
+              setMenuOpen(true);
+            }}
+
             aria-label="Open menu"
             className="-ml-2 flex h-10 w-10 items-center justify-center rounded-full text-maroon-800 hover:bg-maroon-800/5 lg:hidden"
           >
@@ -149,11 +167,19 @@ export function Header() {
       {/* Mobile menu */}
       {menuOpen && (
         <div className="fixed inset-0 z-50 lg:hidden">
+          {/* prevent background scroll while menu is open */}
+
+
+
           <div
             className="absolute inset-0 bg-ink-900/50"
-            onClick={() => setMenuOpen(false)}
+            onClick={() => {
+              document.body.style.overflow = "";
+              setMenuOpen(false);
+            }}
           />
-          <div className="absolute inset-y-0 left-0 flex w-[85%] max-w-sm flex-col bg-cream-50 shadow-card">
+          <div className="absolute inset-y-0 left-0 flex w-full max-w-sm flex-col bg-cream-50 shadow-card">
+
             <div className="flex items-center justify-between border-b border-cream-300 px-4 py-4">
               <span className="font-serif text-lg font-bold text-maroon-900">
                 Menu
