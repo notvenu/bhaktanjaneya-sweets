@@ -48,7 +48,7 @@ export interface Faq {
 export const faqs: Faq[] = [
   {
     q: "How do I place an order?",
-    a: "Add items to your cart and check out on WhatsApp. We'll confirm availability, the final total, and delivery details with you directly.",
+    a: "Add items to your cart, choose your delivery address and payment method, and place the order from checkout. Logged-in customers can track orders from My Account.",
   },
   {
     q: "Do you use pure ghee?",
@@ -60,15 +60,15 @@ export const faqs: Faq[] = [
   },
   {
     q: "What areas do you deliver to?",
-    a: "We deliver across India. Shipping is free on orders above ₹700; smaller orders have shipping confirmed at checkout.",
+    a: "We deliver across serviceable Indian PIN codes. Shipping is free on eligible orders above the free-shipping threshold; smaller orders show shipping at checkout.",
   },
   {
     q: "Can I place a bulk or gifting order?",
     a: "Absolutely. Visit our Bulk Orders page or message us on WhatsApp and we'll help you put together the perfect order with custom packaging.",
   },
   {
-    q: "When will online card/UPI payment be available?",
-    a: "Secure online payments (cards, UPI, netbanking via Razorpay) are coming soon. For now, ordering on WhatsApp is quick and easy.",
+    q: "Can I save my delivery address?",
+    a: "Yes. Create an account and save your default delivery address from My Account, or choose to save the address while checking out.",
   },
 ];
 
@@ -87,110 +87,181 @@ export interface Policy {
 export const policies: Record<string, Policy> = {
   shipping: {
     title: "Shipping Policy",
-    updated: "2026-05-01",
+    updated: "2026-06-12",
     intro:
-      "We aim to get your sweets and namkeen to you as fresh as possible. Here's how shipping works.",
+      "We prepare and pack every order with freshness in mind. This policy explains where we ship, when orders are dispatched, how tracking works, and what happens if a delivery is delayed.",
     sections: [
       {
         heading: "Delivery areas & charges",
         body: [
-          "We deliver across India. Shipping is free on all orders above ₹700.",
-          "For orders below ₹700, a small shipping charge is confirmed with you at the time of order.",
+          "We deliver across serviceable PIN codes in India through trusted courier and postal partners. If a PIN code is temporarily not serviceable, we will contact you before processing the order.",
+          "Shipping is free on eligible orders above the free-shipping threshold shown at checkout. Orders below that threshold may include a standard delivery charge, shown before payment or order confirmation.",
+          "For bulk, wedding, corporate, or fragile gifting orders, delivery charges and timelines may vary based on quantity, packaging, destination, and urgency.",
         ],
       },
       {
-        heading: "Dispatch & delivery time",
+        heading: "Processing, dispatch & delivery time",
         body: [
-          "Because items are made fresh, orders are typically dispatched within 1–3 business days.",
-          "Delivery timelines depend on your location and courier; we'll share tracking details where available.",
+          "Most regular orders are prepared and dispatched within 1-3 business days. Freshly made or high-volume orders may need extra preparation time.",
+          "After dispatch, typical delivery takes 2-7 business days depending on city, state, courier route, holidays, weather, and local restrictions.",
+          "Dispatch and delivery timelines are estimates, not guarantees. We will keep you informed if we notice an unusual delay.",
         ],
       },
       {
-        heading: "Packaging",
+        heading: "Tracking updates",
         body: [
-          "All products are sealed and packed to preserve freshness during transit.",
+          "Once an order is shipped, our admin team can add the delivery company and delivery/tracking ID. Logged-in customers can view those details from My Account.",
+          "Courier tracking may take a few hours to become active after dispatch. If a tracking ID does not update immediately, please check again later or contact us.",
+          "For local or hand-delivered orders, tracking may be shared as a delivery ID or manual update instead of a courier tracking URL.",
+        ],
+      },
+      {
+        heading: "Packaging & freshness",
+        body: [
+          "Products are sealed and packed to protect freshness during transit. We choose packaging based on product type, weight, and expected travel time.",
+          "Some sweets are delicate by nature. Minor movement, light surface marks, or shape variation may happen during transit and does not usually affect quality or taste.",
+          "Please store products as instructed after delivery. Heat, sunlight, and moisture can affect sweets and namkeen quickly.",
+        ],
+      },
+      {
+        heading: "Incorrect address or missed delivery",
+        body: [
+          "Customers are responsible for entering a complete and reachable delivery address, including house number, street, area, city, state, and PIN code.",
+          "If a courier cannot deliver due to an incorrect address, unavailable recipient, refused delivery, or repeated failed attempts, extra re-shipping charges may apply.",
+          "Please contact us quickly if you notice an address mistake after placing an order. We can update it only before dispatch.",
         ],
       },
     ],
   },
   returns: {
     title: "Returns & Refunds",
-    updated: "2026-05-01",
+    updated: "2026-06-12",
     intro:
-      "As we deal in fresh food products, we follow food-safety best practices for returns.",
+      "Because we sell food products, returns and refunds are handled carefully for hygiene, safety, and fairness. This policy explains when we can help with a replacement, refund, or support review.",
     sections: [
       {
-        heading: "Perishable items",
+        heading: "Food-safety return rule",
         body: [
-          "For hygiene and safety reasons, sweets and namkeen cannot be returned once delivered.",
+          "Sweets, namkeen, pickles, podi, and other edible items cannot be returned once delivered because we cannot resell or reuse food products after they leave our control.",
+          "Please check the package as soon as it arrives. If something looks wrong, keep the product, packaging, and invoice/order details until our team reviews the issue.",
         ],
       },
       {
         heading: "Damaged or incorrect orders",
         body: [
-          "If your order arrives damaged, spoiled, or incorrect, contact us within 24 hours of delivery with photos.",
-          "We will arrange a replacement or refund after verifying the issue.",
+          "If your order arrives damaged, spoiled, leaking, missing items, or different from what you ordered, contact us within 24 hours of delivery.",
+          "Please share clear photos or videos of the outer package, inner packing, product condition, shipping label, and order number. This helps us verify the issue with our packing and courier partners.",
+          "After verification, we may offer a replacement, store credit, partial refund, full refund, or another fair resolution depending on the situation.",
         ],
       },
       {
-        heading: "How to reach us",
+        heading: "Refund timelines",
         body: [
-          "Message us on WhatsApp or email with your order details and we'll resolve it quickly.",
+          "Approved refunds are processed to the original payment method where possible. Bank, UPI, card, or payment-gateway timelines may vary after we initiate the refund.",
+          "Cash-on-delivery refunds, if applicable, may require bank or UPI details from the customer for transfer.",
+          "Shipping charges may be non-refundable unless the issue was caused by us or the courier partner.",
+        ],
+      },
+      {
+        heading: "What is not covered",
+        body: [
+          "Taste preference, minor handmade shape variation, slight color variation, delayed consumption, improper storage after delivery, or damage caused after delivery usually does not qualify for refund.",
+          "We cannot approve claims reported after 24 hours unless there is a clear, verifiable reason for the delay.",
+          "Orders cancelled after preparation or dispatch may not be eligible for a full refund.",
         ],
       },
     ],
   },
   privacy: {
     title: "Privacy Policy",
-    updated: "2026-05-01",
+    updated: "2026-06-12",
     intro:
-      "We respect your privacy and only collect the information needed to process your orders.",
+      "We collect only the information needed to create accounts, process orders, deliver products, provide support, and improve the shopping experience.",
     sections: [
       {
         heading: "Information we collect",
         body: [
-          "We collect your name, phone number, and delivery details when you place an order or log in.",
-          "Your phone number is used to verify your identity (OTP) and to confirm and update your orders.",
+          "When you sign up or place an order, we may collect your name, phone number, email address, saved delivery address, order items, payment method, and order history.",
+          "Your phone number is used for OTP login, delivery coordination, order support, and important order updates.",
+          "If you save an address in your account, we use it to prefill checkout and reduce mistakes in future orders.",
         ],
       },
       {
-        heading: "How we use it",
+        heading: "How we use your information",
         body: [
-          "Your information is used solely to process orders, provide support, and (if you opt in) share offers.",
+          "We use your information to confirm orders, collect payment, dispatch products, share tracking updates, handle refunds or replacements, and respond to support requests.",
+          "We may use order history to improve our catalog, packaging, availability planning, and customer experience.",
+          "If we send promotional messages, we aim to keep them relevant and limited. You can ask us to stop promotional communication at any time.",
+        ],
+      },
+      {
+        heading: "Sharing with service providers",
+        body: [
+          "We share only necessary information with delivery partners, payment processors, hosting/database providers, and support tools required to run the business.",
           "We do not sell your personal information to third parties.",
+          "Payment details are handled by payment partners such as Razorpay. We do not store card numbers, CVV, UPI PINs, or netbanking passwords.",
         ],
       },
       {
-        heading: "Payments",
+        heading: "Data security & retention",
         body: [
-          "When online payments launch, transactions are processed securely by our payment partner. We never store your card details.",
+          "We use reasonable technical and operational safeguards to protect customer data. No online system can be guaranteed 100% secure, but we work to reduce risk.",
+          "We retain account, order, and invoice information as needed for service, legal, tax, fraud-prevention, and customer-support purposes.",
+          "You can contact us to correct your profile details or ask questions about your stored information.",
         ],
       },
     ],
   },
   terms: {
     title: "Terms of Service",
-    updated: "2026-05-01",
+    updated: "2026-06-12",
     intro:
-      "By using this website and placing orders, you agree to the following terms.",
+      "By using this website, creating an account, or placing an order, you agree to these terms. Please read them together with our Shipping, Returns, and Privacy policies.",
     sections: [
       {
         heading: "Orders & pricing",
         body: [
-          "All orders are subject to availability and confirmation. Prices are shown in INR and may change without notice.",
-          "We reserve the right to cancel any order; in such cases any amount paid will be refunded.",
+          "All prices are shown in Indian Rupees and may change without prior notice. The final payable amount is shown at checkout before order confirmation.",
+          "Orders are subject to product availability, payment confirmation, delivery serviceability, and our internal acceptance.",
+          "We may cancel or modify an order if an item is unavailable, pricing is incorrect, payment fails, delivery is not serviceable, or the order appears fraudulent. If payment was collected, eligible refunds will be initiated.",
         ],
       },
       {
         heading: "Product information",
         body: [
-          "We try to describe products as accurately as possible. Slight variations in appearance may occur as items are handmade.",
+          "We try to keep product descriptions, images, ingredients, weights, and prices accurate. However, handmade products may have natural variation in shape, color, size, and finish.",
+          "Images are for representation. Actual packaging and presentation may vary based on stock, season, courier requirements, and product type.",
+          "Customers with allergies should contact us before ordering. Our kitchen may handle nuts, dairy, gluten, spices, and other allergens.",
+        ],
+      },
+      {
+        heading: "Customer responsibilities",
+        body: [
+          "You agree to provide accurate account, contact, delivery, and payment information. Incorrect details can delay or prevent delivery.",
+          "You are responsible for keeping your OTP and account access secure. Do not share OTPs with anyone claiming to be from our team.",
+          "You agree not to misuse the website, interfere with its operation, or place fraudulent or abusive orders.",
+        ],
+      },
+      {
+        heading: "Payments, cancellations & support",
+        body: [
+          "Online payments, if used, are processed through third-party payment partners. Cash on delivery availability may depend on location, order value, and internal approval.",
+          "Cancellation requests are easiest to accept before preparation or dispatch. Once food is prepared or shipped, cancellation and refund options may be limited.",
+          "For any question about an order, contact us with your order number and registered phone number so we can help quickly.",
+        ],
+      },
+      {
+        heading: "Limitation of liability",
+        body: [
+          "We are responsible for preparing and dispatching your order with reasonable care. We are not liable for indirect losses, missed occasions, or delays caused by events outside our control.",
+          "Nothing in these terms limits rights that cannot be limited under applicable law.",
         ],
       },
       {
         heading: "Contact",
         body: [
-          "For any questions about these terms, please reach out to us via WhatsApp or email.",
+          "For questions about these terms or any order, please contact us via WhatsApp or email using the details available on the website.",
+          "We may update these terms from time to time. The latest version will always be available on this page.",
         ],
       },
     ],

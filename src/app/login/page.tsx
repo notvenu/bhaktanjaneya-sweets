@@ -8,17 +8,29 @@ import { Container } from "@/components/ui/Container";
 import { useAuth } from "@/context/AuthContext";
 import { config } from "@/lib/config";
 
+const inputClass =
+  "h-12 w-full rounded-xl border border-cream-300 bg-white px-4 text-sm focus:border-saffron-400 focus:outline-none focus:ring-2 focus:ring-saffron-400/40";
+
 function LoginInner() {
   const router = useRouter();
   const params = useSearchParams();
   const redirect = params.get("redirect") || "/account";
   const { sendOtp, confirmOtp, loading } = useAuth();
 
+  const [mode, setMode] = useState<"login" | "signup">("login");
   const [step, setStep] = useState<"phone" | "otp">("phone");
+  const [name, setName] = useState("");
+  const [email, setEmail] = useState("");
   const [phone, setPhone] = useState("");
   const [code, setCode] = useState("");
   const [devCode, setDevCode] = useState<string | undefined>();
   const [error, setError] = useState("");
+
+  function switchMode(nextMode: "login" | "signup") {
+    setMode(nextMode);
+    setError("");
+    setCode("");
+  }
 
   async function submitPhone(e: React.FormEvent) {
     e.preventDefault();
@@ -28,12 +40,20 @@ function LoginInner() {
       setError("Please enter a valid 10-digit phone number.");
       return;
     }
+    if (mode === "signup" && !name.trim()) {
+      setError("Please enter your full name.");
+      return;
+    }
+    if (mode === "signup" && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim())) {
+      setError("Please enter a valid email address.");
+      return;
+    }
     try {
-      const res = await sendOtp(digits);
+      const res = await sendOtp(digits, mode);
       setDevCode(res.devCode);
       setStep("otp");
-    } catch {
-      setError("Couldn't send the code. Please try again.");
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Couldn't send the code. Please try again.");
     }
   }
 
@@ -41,7 +61,12 @@ function LoginInner() {
     e.preventDefault();
     setError("");
     try {
-      await confirmOtp(phone.replace(/\D/g, ""), code.trim());
+      await confirmOtp(
+        phone.replace(/\D/g, ""),
+        code.trim(),
+        mode,
+        mode === "signup" ? { name: name.trim(), email: email.trim() } : undefined,
+      );
       router.push(redirect);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Invalid code.");
@@ -57,11 +82,59 @@ function LoginInner() {
       {step === "phone" ? (
         <form onSubmit={submitPhone} className="mt-5">
           <h1 className="font-serif text-2xl font-bold text-maroon-900">
-            Login or Sign up
+            {mode === "login" ? "Login" : "Create your account"}
           </h1>
           <p className="mt-1 text-sm text-ink-500">
-            We&apos;ll send a one-time code to verify your number.
+            {mode === "login"
+              ? "Welcome back. Verify your number to view orders."
+              : "Tell us the basics, then verify your number with OTP."}
           </p>
+
+          <div className="mt-5 grid grid-cols-2 rounded-full bg-cream-100 p-1 text-sm font-semibold">
+            <button
+              type="button"
+              onClick={() => switchMode("login")}
+              className={`h-10 rounded-full ${
+                mode === "login" ? "bg-white text-maroon-900 shadow-sm" : "text-ink-500"
+              }`}
+            >
+              Login
+            </button>
+            <button
+              type="button"
+              onClick={() => switchMode("signup")}
+              className={`h-10 rounded-full ${
+                mode === "signup" ? "bg-white text-maroon-900 shadow-sm" : "text-ink-500"
+              }`}
+            >
+              Sign up
+            </button>
+          </div>
+
+          {mode === "signup" && (
+            <div className="mt-5 space-y-3">
+              <label className="block text-sm font-medium text-maroon-900">
+                Full name
+                <input
+                  value={name}
+                  onChange={(e) => setName(e.target.value)}
+                  placeholder="Your full name"
+                  className={`${inputClass} mt-1.5`}
+                />
+              </label>
+              <label className="block text-sm font-medium text-maroon-900">
+                Email address
+                <input
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  inputMode="email"
+                  placeholder="you@example.com"
+                  className={`${inputClass} mt-1.5`}
+                />
+              </label>
+            </div>
+          )}
+
           <label className="mt-6 block text-sm font-medium text-maroon-900">
             Phone number
           </label>
@@ -70,7 +143,7 @@ function LoginInner() {
             <input
               autoFocus
               value={phone}
-              onChange={(e) => setPhone(e.target.value)}
+              onChange={(e) => setPhone(e.target.value.replace(/\D/g, "").slice(0, 10))}
               inputMode="tel"
               placeholder="98765 43210"
               className="h-12 flex-1 rounded-r-xl bg-transparent pr-4 text-sm focus:outline-none"
@@ -82,7 +155,7 @@ function LoginInner() {
             disabled={loading}
             className="mt-5 flex h-12 w-full items-center justify-center gap-2 rounded-full bg-maroon-800 text-sm font-semibold text-cream-50 hover:bg-maroon-700 disabled:opacity-60"
           >
-            {loading ? "Sending…" : "Send OTP"}
+            {loading ? "Sending..." : mode === "login" ? "Send login OTP" : "Send signup OTP"}
             <ArrowRight size={18} />
           </button>
         </form>
@@ -126,7 +199,7 @@ function LoginInner() {
             disabled={loading}
             className="mt-5 flex h-12 w-full items-center justify-center gap-2 rounded-full bg-maroon-800 text-sm font-semibold text-cream-50 hover:bg-maroon-700 disabled:opacity-60"
           >
-            {loading ? "Verifying…" : "Verify & Continue"}
+            {loading ? "Verifying..." : mode === "login" ? "Login" : "Create account"}
           </button>
           <button
             type="button"

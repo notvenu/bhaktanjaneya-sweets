@@ -9,7 +9,13 @@ import {
   useState,
 } from "react";
 import type { Customer } from "@/lib/types";
-import { requestOtp, verifyOtp } from "@/lib/api/auth";
+import {
+  requestOtp,
+  updateCustomerProfile,
+  verifyOtp,
+  type AuthMode,
+  type SignupDetails,
+} from "@/lib/api/auth";
 
 const STORAGE_KEY = "bas_session";
 
@@ -25,9 +31,10 @@ function isRealSession(value: unknown): value is { token?: string; customer: Cus
 interface AuthContextValue {
   customer: Customer | null;
   loading: boolean;
-  sendOtp: (phone: string) => Promise<{ devCode?: string }>;
-  confirmOtp: (phone: string, code: string) => Promise<void>;
+  sendOtp: (phone: string, mode?: AuthMode) => Promise<{ devCode?: string }>;
+  confirmOtp: (phone: string, code: string, mode?: AuthMode, details?: SignupDetails) => Promise<void>;
   updateName: (name: string) => void;
+  updateCustomer: (patch: Partial<Customer>) => Promise<Customer>;
   logout: () => void;
 }
 
@@ -60,20 +67,20 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     else window.localStorage.removeItem(STORAGE_KEY);
   }, []);
 
-  const sendOtp = useCallback(async (phone: string) => {
+  const sendOtp = useCallback(async (phone: string, mode: AuthMode = "login") => {
     setLoading(true);
     try {
-      return await requestOtp(phone);
+      return await requestOtp(phone, mode);
     } finally {
       setLoading(false);
     }
   }, []);
 
   const confirmOtp = useCallback(
-    async (phone: string, code: string) => {
+    async (phone: string, code: string, mode: AuthMode = "login", details?: SignupDetails) => {
       setLoading(true);
       try {
-        const session = await verifyOtp(phone, code);
+        const session = await verifyOtp(phone, code, mode, details);
         const c =
           session.customer ?? {
             id: `cus_${phone}`,
@@ -99,11 +106,22 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     });
   }, []);
 
+  const updateCustomer = useCallback(
+    async (patch: Partial<Customer>) => {
+      const next = await updateCustomerProfile(patch);
+      const raw = window.localStorage.getItem(STORAGE_KEY);
+      const parsed = raw ? (JSON.parse(raw) as { token?: string }) : {};
+      persist({ ...parsed, customer: next });
+      return next;
+    },
+    [persist],
+  );
+
   const logout = useCallback(() => persist(null), [persist]);
 
   const value = useMemo(
-    () => ({ customer, loading, sendOtp, confirmOtp, updateName, logout }),
-    [customer, loading, sendOtp, confirmOtp, updateName, logout],
+    () => ({ customer, loading, sendOtp, confirmOtp, updateName, updateCustomer, logout }),
+    [customer, loading, sendOtp, confirmOtp, updateName, updateCustomer, logout],
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

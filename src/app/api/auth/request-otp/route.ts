@@ -8,7 +8,22 @@ function genCode() {
 export async function POST(req: Request) {
   const body = await req.json();
   const phone = body?.phone;
+  const mode = body?.mode === "signup" ? "signup" : "login";
   if (!phone) return NextResponse.json({ error: "Missing phone" }, { status: 400 });
+
+  const { data: customer, error: customerError } = await supabaseAdmin
+    .from("customers")
+    .select("phone")
+    .eq("phone", phone)
+    .limit(1)
+    .maybeSingle();
+  if (customerError) return NextResponse.json({ error: customerError.message }, { status: 500 });
+  if (mode === "login" && !customer) {
+    return NextResponse.json({ error: "No account found. Please sign up first." }, { status: 404 });
+  }
+  if (mode === "signup" && customer) {
+    return NextResponse.json({ error: "An account already exists. Please log in instead." }, { status: 409 });
+  }
 
   const code = genCode();
   const expiresAt = new Date(Date.now() + 5 * 60 * 1000).toISOString();

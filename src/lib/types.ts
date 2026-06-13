@@ -33,6 +33,10 @@ export interface Product {
   active: boolean;
   /** Short trust badges, e.g. "100% Pure Veg", "Pure Ghee". */
   badges?: string[];
+  /** GST percentage applied to variant prices, e.g. 5 for 5%. */
+  taxRate?: number;
+  /** Flat extra charge in INR per unit (packaging, handling, etc.). */
+  extraCharges?: number;
 }
 
 export interface Category {
@@ -70,6 +74,8 @@ export interface CartItem {
   variantLabel: string;
   price: number;
   quantity: number;
+  taxRate?: number;
+  extraCharges?: number;
 }
 
 export interface Customer {
@@ -77,6 +83,7 @@ export interface Customer {
   phone: string;
   name?: string;
   email?: string;
+  savedAddress?: ShippingAddress;
   createdAt: string;
   ordersCount?: number;
 }
@@ -89,7 +96,22 @@ export interface OrderItem {
   quantity: number;
 }
 
-export type OrderChannel = "whatsapp" | "online";
+export interface ShippingAddress {
+  line1: string;
+  line2?: string;
+  district?: string;
+  city: string;
+  state: string;
+  pincode: string;
+}
+
+export interface DeliveryTracking {
+  company?: string;
+  trackingId?: string;
+}
+
+export type PaymentMethod = "razorpay" | "cod";
+export type OrderChannel = "online";
 export type PaymentStatus = "pending" | "paid" | "failed" | "cod";
 export type OrderStatus =
   | "new"
@@ -103,13 +125,23 @@ export interface Order {
   id: string;
   customerPhone: string;
   customerName?: string;
+  customerEmail?: string;
+  shippingAddress?: ShippingAddress;
+  notes?: string;
   items: OrderItem[];
   subtotal: number;
   discount?: number;
   shipping?: number;
+  taxAmount?: number;
+  extraChargesAmount?: number;
   total: number;
   channel: OrderChannel;
+  paymentMethod?: PaymentMethod;
   paymentStatus: PaymentStatus;
+  razorpayOrderId?: string;
+  razorpayPaymentId?: string;
+  deliveryCompany?: string;
+  deliveryTrackingId?: string;
   status: OrderStatus;
   createdAt: string;
 }

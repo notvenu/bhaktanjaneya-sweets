@@ -3,11 +3,11 @@
 import { useEffect } from "react";
 import Link from "next/link";
 import Image from "next/image";
-import { X, Minus, Plus, Trash2, MessageCircle, ShoppingBag } from "lucide-react";
+import { X, Minus, Plus, Trash2, ShoppingBag, ArrowRight } from "lucide-react";
 import { useCart } from "@/context/CartContext";
-import { waLink, cartOrderMessage } from "@/lib/whatsapp";
 import { config } from "@/lib/config";
 import { formatINR, cn } from "@/lib/utils";
+import { defaultProductImage } from "@/lib/images";
 
 export function CartDrawer() {
   const { items, count, subtotal, setQty, remove, isOpen, setOpen } = useCart();
@@ -115,15 +115,13 @@ export function CartDrawer() {
                       onClick={() => setOpen(false)}
                       className="relative h-20 w-20 shrink-0 overflow-hidden rounded-xl border border-cream-200 bg-cream-100"
                     >
-                      {it.image && (
-                        <Image
-                          src={it.image}
-                          alt={it.name}
-                          fill
-                          sizes="80px"
-                          className="object-cover"
-                        />
-                      )}
+                      <Image
+                        src={it.image || defaultProductImage("sweets")}
+                        alt={it.name}
+                        fill
+                        sizes="80px"
+                        className="object-cover"
+                      />
                     </Link>
                     <div className="min-w-0 flex-1">
                       <div className="flex justify-between gap-2">
@@ -183,20 +181,19 @@ export function CartDrawer() {
                   {formatINR(subtotal)}
                 </span>
               </div>
-              <a
-                href={waLink(cartOrderMessage(items, { subtotal }))}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="flex h-12 w-full items-center justify-center gap-2 rounded-full bg-[#25D366] text-sm font-semibold text-white hover:bg-[#1fb457]"
-              >
-                <MessageCircle size={18} /> Checkout on WhatsApp
-              </a>
               <Link
                 href="/cart"
                 onClick={() => setOpen(false)}
+                className="flex h-12 w-full items-center justify-center gap-2 rounded-full bg-maroon-800 text-sm font-semibold text-cream-50 hover:bg-maroon-700"
+              >
+                Checkout <ArrowRight size={18} />
+              </Link>
+              <Link
+                href="/shop"
+                onClick={() => setOpen(false)}
                 className="mt-2 flex h-11 w-full items-center justify-center rounded-full border border-maroon-800/30 text-sm font-semibold text-maroon-800 hover:bg-maroon-800/5"
               >
-                View full cart
+                Continue shopping
               </Link>
             </footer>
           </>

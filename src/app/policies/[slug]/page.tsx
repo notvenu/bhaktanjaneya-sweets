@@ -63,23 +63,36 @@ export default async function PolicyPage(props: PageProps<"/policies/[slug]">) {
           </aside>
 
           {/* Content */}
-          <article className="max-w-3xl">
-            <h1 className="font-serif text-3xl font-bold text-maroon-900">
-              {policy.title}
-            </h1>
-            <p className="mt-2 text-sm text-ink-400">
-              Last updated {formatDate(policy.updated)}
-            </p>
-            <p className="mt-5 text-base leading-relaxed text-ink-600">
-              {policy.intro}
-            </p>
+          <article className="max-w-4xl">
+            <div className="rounded-3xl border border-cream-200 bg-white p-6 shadow-soft sm:p-8">
+              <p className="text-xs font-semibold uppercase tracking-[0.2em] text-saffron-600">
+                Bhaktanjaneya Sweets Policy
+              </p>
+              <h1 className="mt-2 font-serif text-3xl font-bold text-maroon-900 sm:text-4xl">
+                {policy.title}
+              </h1>
+              <p className="mt-2 text-sm text-ink-400">
+                Last updated {formatDate(policy.updated)}
+              </p>
+              <p className="mt-5 text-base leading-relaxed text-ink-600 sm:text-lg">
+                {policy.intro}
+              </p>
+            </div>
 
-            <div className="mt-8 space-y-8">
-              {policy.sections.map((section) => (
-                <section key={section.heading}>
-                  <h2 className="font-serif text-xl font-semibold text-maroon-900">
-                    {section.heading}
-                  </h2>
+            <div className="mt-6 space-y-4">
+              {policy.sections.map((section, index) => (
+                <section
+                  key={section.heading}
+                  className="rounded-2xl border border-cream-200 bg-white p-5"
+                >
+                  <div className="flex items-start gap-3">
+                    <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-saffron-100 text-sm font-bold text-maroon-900">
+                      {index + 1}
+                    </span>
+                    <h2 className="font-serif text-xl font-semibold text-maroon-900">
+                      {section.heading}
+                    </h2>
+                  </div>
                   <div className="mt-3 space-y-3 text-base leading-relaxed text-ink-600">
                     {section.body.map((para, i) => (
                       <p key={i}>{para}</p>
@@ -87,6 +100,12 @@ export default async function PolicyPage(props: PageProps<"/policies/[slug]">) {
                   </div>
                 </section>
               ))}
+            </div>
+
+            <div className="mt-6 rounded-2xl border border-saffron-200 bg-saffron-50 p-5 text-sm text-ink-600">
+              Need help with an order or a policy question? Message us on WhatsApp
+              with your order number, phone number, and photos if the issue is
+              about delivery or product condition.
             </div>
           </article>
         </div>

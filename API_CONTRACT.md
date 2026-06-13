@@ -47,6 +47,8 @@ interface Product {
   rating: number;          // 0–5
   reviewCount: number;
   active: boolean;         // hidden from storefront when false
+  taxRate?: number;        // GST percentage (e.g. 5 for 5%)
+  extraCharges?: number;   // Flat INR charges
   badges?: string[];       // "Pure Ghee", "100% Veg", …
 }
 
@@ -83,6 +85,15 @@ interface Customer {
   ordersCount?: number;
 }
 
+interface Address {
+  name: string;
+  phone: string;
+  street: string;
+  city: string;
+  state: string;
+  pincode: string;
+}
+
 interface OrderItem {
   productId: string;
   name: string;
@@ -104,9 +115,14 @@ interface Order {
   subtotal: number;
   discount?: number;
   shipping?: number;
+  shippingAddress?: Address;
   total: number;
+  taxAmount?: number;
+  extraChargesAmount?: number;
   channel: OrderChannel;
   paymentStatus: PaymentStatus;
+  deliveryCompany?: string;
+  deliveryTrackingId?: string;
   status: OrderStatus;
   createdAt: string;       // ISO
 }
@@ -131,6 +147,7 @@ These power the server-rendered storefront. Return only `active` products/offers
 | `GET /categories`                   | `categories.getCategories()`         | `Category[]`      |
 | `GET /categories/:slug`             | `categories.getCategory(slug)`       | `Category \| null`|
 | `GET /offers?active=true`           | `offers.getActiveOffers()`           | `Offer[]`         |
+| `GET /api/pincode/:code`            | `pincode.lookupPincode(code)`        | `{ city, state, pincode }` |
 
 `404` may be returned for the `:slug` lookups instead of `null`; the frontend
 treats a non-OK response as "not found".
@@ -233,7 +250,7 @@ To make it real, implement the endpoints below and swap the bodies of the
 | Products   | `GET /admin/products` · `POST /admin/products` · `PUT /admin/products/:id` · `DELETE /admin/products/:id` |
 | Categories | `GET /admin/categories` · `POST /admin/categories` · `PUT /admin/categories/:id` · `DELETE /admin/categories/:id` |
 | Offers     | `GET /admin/offers` · `POST /admin/offers` · `PUT /admin/offers/:id` · `DELETE /admin/offers/:id` |
-| Orders     | `GET /admin/orders` · `PATCH /admin/orders/:id` `{ status }` |
+| Orders     | `GET /admin/orders` · `PATCH /admin/orders/:id` `{ status, deliveryCompany?, deliveryTrackingId? }`. *Note: When status is set to "shipped", the Admin UI must prompt for and require tracking details before submitting.* |
 | Customers  | `GET /admin/customers` |
 
 Request/response bodies use the same `Product` / `Category` / `Offer` / `Order` /

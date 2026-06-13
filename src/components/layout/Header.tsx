@@ -111,7 +111,7 @@ export function Header() {
             >
               <User size={20} />
               <span className="hidden text-sm font-medium sm:inline">
-                {customer ? customer.name?.split(" ")[0] ?? "Account" : "Login"}
+                {customer ? customer.name?.split(" ")[0] ?? "Account" : "Login / Sign up"}
               </span>
             </Link>
 
