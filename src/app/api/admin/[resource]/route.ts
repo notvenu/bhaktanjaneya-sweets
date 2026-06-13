@@ -79,8 +79,49 @@ export async function POST(req: NextRequest, { params }: { params: Promise<Recor
   const resource = p.resource as Resource;
   const body = (await req.json()) as Record<string, unknown>;
   const table = resourceTable(resource);
-  const payload = payloadFor(resource, body);
-  const { data, error } = await supabaseAdmin.from(table).insert(payload).select("*").single();
+  // Slug uniqueness enforcement (case-insensitive) + normalization for categories/products.
+  // We treat collisions as duplicates based on the normalized slug.
+  const normalizeSlug = (value: unknown) => {
+    if (typeof value !== "string") return "";
+    // betterSlugify already lowercases + normalizes punctuation/diacritics.
+    // eslint-disable-next-line @typescript-eslint/no-require-imports
+    return require("@/lib/utils").betterSlugify(value).trim();
+  };
+
+  let payload = payloadFor(resource, body);
+
+  if (resource === "categories" || resource === "products") {
+    const incomingSlug = normalizeSlug((body as { slug?: unknown })?.slug);
+
+
+    if (!incomingSlug) return NextResponse.json({ error: "Slug is required." }, { status: 400 });
+
+    // Normalize and apply slug to payload too, so DB always stores consistent values.
+    payload = { ...payload, slug: incomingSlug };
+
+    const { data: existing, error: slugCheckError } = await supabaseAdmin
+      .from(table)
+      .select("id")
+      .eq("slug", incomingSlug)
+      .limit(1);
+
+    if (slugCheckError) {
+      return NextResponse.json({ error: slugCheckError.message }, { status: 500 });
+    }
+
+    if ((existing ?? []).length > 0) {
+      // If admin is creating a new record with same slug, reject.
+      return NextResponse.json({ error: "Slug already exists. Please choose a different name/slug." }, { status: 409 });
+    }
+  }
+
+  const { data, error } = await supabaseAdmin
+    .from(table)
+    .insert(payload)
+    .select("*")
+    .single();
+
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
   return NextResponse.json(formatRow(resource, data as Record<string, unknown>), { status: 201 });
+
 }

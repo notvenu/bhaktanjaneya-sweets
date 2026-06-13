@@ -67,7 +67,15 @@ DESCRIPTIONS = {
 
 
 def slugify(s: str) -> str:
-    return re.sub(r"(^-|-$)", "", re.sub(r"[^a-z0-9]+", "-", str(s).lower().strip()))
+    # Keep existing DB slugs stable; this function is used for the mock JSON
+    # generation only. Improve normalization without introducing new slug formats
+    # for typical ASCII inputs.
+    x = str(s or "").strip().lower()
+    x = x.replace("&", " and ").replace("+", " plus ")
+    x = re.sub(r"[^a-z0-9]+", "-", x)
+    x = re.sub(r"-+", "-", x)
+    return re.sub(r"(^-|-$)", "", x)
+
 
 
 def clean_name(raw) -> str:

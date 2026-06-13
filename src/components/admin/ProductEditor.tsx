@@ -4,7 +4,7 @@ import { useState } from "react";
 import { Plus, Trash2 } from "lucide-react";
 import type { Category, Product, Variant } from "@/lib/types";
 import { defaultProductImage } from "@/lib/images";
-import { uid, slugify } from "@/lib/utils";
+import { uid, betterSlugify } from "@/lib/utils";
 import { Field, inputClass, Toggle, Modal, AdminButton } from "./ui";
 
 const TAGS: { value: string; label: string }[] = [
@@ -97,7 +97,8 @@ export function ProductEditor({
     onSave({
       ...draft,
       name,
-      slug: draft.slug.trim() || slugify(name),
+      slug: (draft.slug.trim() ? betterSlugify(draft.slug) : betterSlugify(name)),
+
       description: draft.description.trim(),
       categoryLabel: category?.name,
       images: images.length ? images : [defaultProductImage(draft.category)],
@@ -135,7 +136,8 @@ export function ProductEditor({
                 setDraft((d) => ({
                   ...d,
                   name,
-                  slug: isNew && !d.slug ? slugify(name) : d.slug,
+                  slug: isNew && !d.slug ? betterSlugify(name) : d.slug,
+
                 }));
               }}
               placeholder="Kaju Patisa"

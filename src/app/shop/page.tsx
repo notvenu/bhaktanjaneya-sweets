@@ -39,13 +39,116 @@ export default async function ShopPage(props: PageProps<"/shop">) {
   if (category) items = items.filter((p) => p.category === category);
   if (tag) items = items.filter((p) => p.tags.includes(tag));
   if (q) {
-    const s = q.toLowerCase();
-    items = items.filter(
-      (p) =>
-        p.name.toLowerCase().includes(s) ||
-        p.description.toLowerCase().includes(s) ||
-        (p.categoryLabel ?? "").toLowerCase().includes(s),
-    );
+    const query = normalizeSearchQuery(q);
+    items = items
+      .map((p) => ({ p, score: scoreProductForQuery(p, query) }))
+      .filter(({ score }) => score > 0)
+      .sort((a, b) => b.score - a.score)
+      .map(({ p }) => p);
+  }
+
+  function normalizeSearchQuery(s: string) {
+    return s
+      .toLowerCase()
+      .normalize("NFKD")
+      .replace(/\p{Diacritic}/gu, "")
+      .replace(/\s+/g, " ")
+      .trim();
+  }
+
+  function tokenize(s: string) {
+    return normalizeSearchQuery(s)
+      .split(" ")
+      .map((t) => t.trim())
+      .filter(Boolean);
+  }
+
+  function editDistanceWithin(a: string, b: string, max: number) {
+    // Bounded DP for small fuzzy matching.
+    const la = a.length;
+    const lb = b.length;
+    if (Math.abs(la - lb) > max) return max + 1;
+
+    const dp = new Array(lb + 1);
+    for (let j = 0; j <= lb; j++) dp[j] = j;
+
+    for (let i = 1; i <= la; i++) {
+      let prev = dp[0];
+      dp[0] = i;
+      for (let j = 1; j <= lb; j++) {
+        const temp = dp[j];
+        const cost = a[i - 1] === b[j - 1] ? 0 : 1;
+        dp[j] = Math.min(dp[j] + 1, dp[j - 1] + 1, prev + cost);
+        prev = temp;
+      }
+    }
+    return dp[lb];
+  }
+
+  function scoreProductForQuery(product: (typeof items)[number], query: string) {
+    const name = normalizeSearchQuery(product.name);
+    const desc = normalizeSearchQuery(product.description ?? "");
+    const cat = normalizeSearchQuery(product.categoryLabel ?? "");
+    const hay = `${name} ${desc} ${cat}`;
+
+    if (!query) return 0;
+
+    // Phrase / substring matches (fast + strong)
+    if (name === query) return 1000;
+    if (name.includes(query)) return 300 + Math.min(200, query.length * 5);
+    if (cat.includes(query)) return 140 + Math.min(120, query.length * 3);
+    if (desc.includes(query)) return 60 + Math.min(80, query.length * 2);
+
+    // Token-based scoring (dynamic)
+    const qTokens = tokenize(query);
+    const nTokens = new Set(tokenize(name));
+    const cTokens = new Set(tokenize(cat));
+    const dTokens = new Set(tokenize(desc));
+
+    let score = 0;
+
+    for (const qt of qTokens) {
+      if (nTokens.has(qt)) score += 90;
+      else if (cTokens.has(qt)) score += 55;
+      else if (dTokens.has(qt)) score += 20;
+
+      // prefix match within tokens
+      for (const token of [...nTokens]) {
+        if (token.startsWith(qt) && qt.length >= 3) {
+          score += 35;
+        }
+      }
+      for (const token of [...cTokens]) {
+        if (token.startsWith(qt) && qt.length >= 3) {
+          score += 20;
+        }
+      }
+
+      // lightweight fuzzy edit distance on short tokens
+      if (qt.length >= 3 && qt.length <= 10) {
+        let best = maxTokenEditScore(qt, [...nTokens, ...cTokens]);
+        score += best;
+      }
+    }
+
+    // Slight boost if any token appears somewhere in combined text
+    for (const qt of qTokens) {
+      if (hay.includes(qt)) score += 8;
+    }
+
+    return score;
+
+    function maxTokenEditScore(qt: string, dict: string[]) {
+      let best = 0;
+      for (const t of dict) {
+        const d = editDistanceWithin(qt, t, 2);
+        if (d <= 2) {
+          // Smaller distance => bigger score
+          best = Math.max(best, 40 - d * 12);
+        }
+      }
+      return best;
+    }
   }
   items = sortProducts(items, sort);
 

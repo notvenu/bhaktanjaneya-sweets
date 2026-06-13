@@ -336,10 +336,37 @@ export default function CartPage() {
     }
   }
 
-  function handlePlaceOrder() {
+  const [guestPromptOpen, setGuestPromptOpen] = useState(false);
+
+  function goLoginForPurchase() {
+    const redirect = `/cart`;
+    window.location.href = `/login?redirect=${encodeURIComponent(redirect)}`;
+  }
+
+function closeGuestPrompt() {
+    setGuestPromptOpen(false);
+  }
+
+  function confirmGuestPurchase() {
+    setGuestPromptOpen(false);
     if (paymentMethod === "cod") void placeCodOrder();
     else void placeRazorpayOrder();
   }
+
+  function confirmLoginPurchase() {
+    closeGuestPrompt();
+    goLoginForPurchase();
+  }
+
+  function handlePlaceOrder() {
+    if (!customer) {
+      setGuestPromptOpen(true);
+      return;
+    }
+    if (paymentMethod === "cod") void placeCodOrder();
+    else void placeRazorpayOrder();
+  }
+
 
   async function findAddressByPincode() {
     if (!/^\d{6}$/.test(pincode.trim())) return;

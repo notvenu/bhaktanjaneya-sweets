@@ -13,7 +13,7 @@ import {
   Modal,
   inputClass,
 } from "@/components/admin/ui";
-import { uid, slugify } from "@/lib/utils";
+import { uid, betterSlugify } from "@/lib/utils";
 import type { Category } from "@/lib/types";
 
 function CategoryEditor({
@@ -62,7 +62,8 @@ function CategoryEditor({
     onSave({
       ...draft,
       name,
-      slug: draft.slug.trim() || slugify(name),
+      slug: (draft.slug.trim() ? betterSlugify(draft.slug) : betterSlugify(name)),
+
       description: draft.description?.trim() || undefined,
       image: draft.image?.trim() || undefined,
       order: Number(draft.order) || 0,
@@ -91,11 +92,16 @@ function CategoryEditor({
             value={draft.name}
             onChange={(e) => {
               const name = e.target.value;
-              setDraft((d) => ({
-                ...d,
-                name,
-                slug: isNew && !d.slug ? slugify(name) : d.slug,
-              }));
+              setDraft((d) => {
+                // For new categories: auto-generate slug from name when the slug is empty.
+                // If admin types a slug explicitly, we stop auto-overwriting it.
+                const shouldAutoSlug = isNew && !d.slug;
+                return {
+                  ...d,
+                  name,
+                  slug: shouldAutoSlug ? betterSlugify(name) : d.slug,
+                };
+              });
             }}
             placeholder="Sweets"
           />
