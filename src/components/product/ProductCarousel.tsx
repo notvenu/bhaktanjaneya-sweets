@@ -88,13 +88,15 @@ export function ProductCarousel({
         />
 
         <div className="overflow-hidden" ref={emblaRef}>
-          <div className="flex gap-4 md:gap-5">
+          <div className="flex gap-4 md:gap-5 h-full">
             {products.map((p) => (
               <div
                 key={p.id}
-                className="min-w-0 shrink-0 basis-[72%] sm:basis-[45%] md:basis-[31%] lg:basis-[23.5%]"
+                className="min-w-0 shrink-0 basis-[72%] sm:basis-[45%] md:basis-[31%] lg:basis-[23.5%] h-full"
               >
-                <ProductCard product={p} />
+                <div className="h-full">
+                  <ProductCard product={p} />
+                </div>
               </div>
             ))}
           </div>

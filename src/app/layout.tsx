@@ -9,6 +9,8 @@ import { CategoryNav } from "@/components/layout/CategoryNav";
 import { SiteChrome } from "@/components/layout/SiteChrome";
 import { CartDrawer } from "@/components/cart/CartDrawer";
 import { config } from "@/lib/config";
+import { ToastHost } from "@/components/ui/ToastHost";
+
 
 const heading = Playfair_Display({
   variable: "--font-heading",
@@ -66,6 +68,7 @@ export default function RootLayout({
           >
             {children}
           </SiteChrome>
+          <ToastHost />
         </Providers>
       </body>
     </html>

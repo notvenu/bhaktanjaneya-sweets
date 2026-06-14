@@ -5,7 +5,10 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { LogOut, Package, Pencil, Check, User, Truck, MapPin, X } from "lucide-react";
 import { Container } from "@/components/ui/Container";
-import { Alert } from "@/components/ui/Alert";
+import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
+import { toast } from "@/components/ui/toast";
+
+
 import { Badge } from "@/components/ui/Badge";
 import { useAuth } from "@/context/AuthContext";
 import { apiGet } from "@/lib/api/client";
@@ -96,6 +99,7 @@ export default function AccountPage() {
   /* eslint-disable react-hooks/set-state-in-effect */
   useEffect(() => {
     if (customer) {
+
       setNameInput(customer.name ?? "");
       setAddress({
         line1: customer.savedAddress?.line1 ?? "",
@@ -205,24 +209,44 @@ export default function AccountPage() {
     setEditingAddress(true);
   }
 
-  async function cancelOrderById(orderId: string) {
-    setOrderActionError("");
-    const confirmed = window.confirm(
-      "Cancel this order? You can only cancel before we confirm it.",
-    );
-    if (!confirmed) return;
+  const [cancelConfirmOpen, setCancelConfirmOpen] = useState(false);
+  const [cancelConfirmId, setCancelConfirmId] = useState<string | null>(null);
 
+  async function doCancelOrderById(orderId: string) {
+    setOrderActionError("");
     setCancellingId(orderId);
     try {
       const updated = await cancelOrder(orderId);
-      setOrders((prev) => prev.map((o) => (o.id === orderId ? updated : o)));
+      setOrders((prev) =>
+        prev.map((o) => (o.id === orderId ? updated : o)),
+      );
+      toast({
+        tone: "success",
+        title: "Order cancelled",
+        message: "Your order has been cancelled.",
+      });
     } catch (error) {
       const details = getErrorDetails(error, "Could not cancel order");
-      setOrderActionError(details.hint ? `${details.message} ${details.hint}` : details.message);
+      setOrderActionError(
+        details.hint ? `${details.message} ${details.hint}` : details.message,
+      );
+      toast({
+        tone: "error",
+        title: "Could not cancel",
+        message:
+          (details.hint ? `${details.message} ${details.hint}` : details.message) ||
+          "Please try again.",
+      });
     } finally {
       setCancellingId(null);
     }
   }
+
+  function requestCancelOrder(orderId: string) {
+    setCancelConfirmId(orderId);
+    setCancelConfirmOpen(true);
+  }
+
 
   return (
     <div className="py-10">
@@ -411,9 +435,8 @@ export default function AccountPage() {
                   {lookingUpPincode ? (
                     <p className="text-xs text-ink-500">Looking up city and state…</p>
                   ) : null}
-                  {addressMessage && (
-                    <Alert tone={addressMessageTone}>{addressMessage}</Alert>
-                  )}
+                  {addressMessage ? null : null}
+
                   <div className="flex gap-2">
                     <button
                       type="button"
@@ -444,12 +467,9 @@ export default function AccountPage() {
             <h2 className="mb-4 font-serif text-xl font-semibold text-maroon-900">
               Your Orders
             </h2>
-            {ordersError ? (
-              <Alert className="mb-4">{ordersError}</Alert>
-            ) : null}
-            {orderActionError ? (
-              <Alert className="mb-4">{orderActionError}</Alert>
-            ) : null}
+            {ordersError ? null : null}
+            {orderActionError ? null : null}
+
             {orders.length === 0 ? (
               <div className="rounded-2xl border border-dashed border-cream-300 bg-white py-16 text-center">
                 <span className="mx-auto flex h-14 w-14 items-center justify-center rounded-full bg-cream-100 text-maroon-800">
@@ -528,13 +548,14 @@ export default function AccountPage() {
                         {o.status === "new" ? (
                           <button
                             type="button"
-                            onClick={() => void cancelOrderById(o.id)}
+                            onClick={() => requestCancelOrder(o.id)}
                             disabled={cancellingId === o.id}
                             className="text-sm font-semibold text-maroon-700 hover:text-maroon-900 disabled:opacity-60"
                           >
                             {cancellingId === o.id ? "Cancelling…" : "Cancel order"}
                           </button>
                         ) : null}
+
                         <span className="font-bold text-maroon-900">
                           {formatINR(o.total)}
                         </span>
@@ -546,7 +567,23 @@ export default function AccountPage() {
             )}
           </div>
         </div>
-      </Container>
+      <ConfirmDialog
+        open={cancelConfirmOpen}
+        title="Cancel this order?"
+        description="You can only cancel before we confirm it."
+        confirmLabel="Yes, cancel"
+        tone="danger"
+        onCancel={() => {
+          setCancelConfirmOpen(false);
+          setCancelConfirmId(null);
+        }}
+        onConfirm={() => {
+          if (cancelConfirmId) void doCancelOrderById(cancelConfirmId);
+          setCancelConfirmOpen(false);
+        }}
+      />
+    </Container>
     </div>
   );
 }
+

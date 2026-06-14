@@ -177,19 +177,31 @@ export function Header() {
             </a>
 
             <div className="relative">
-              <button
-                type="button"
-                onClick={() => setAccountMenuOpen((v) => !v)}
-                aria-label="Account menu"
-                className="flex h-10 items-center gap-2 rounded-full px-2.5 text-maroon-800 hover:bg-maroon-800/5 sm:px-3"
-              >
-                <User size={20} />
-                <span className="hidden text-sm font-medium sm:inline">
-                  {customer ? customer.name?.split(" ")[0] ?? "Account" : "Login / Sign up"}
-                </span>
-              </button>
+              {customer ? (
+                <button
+                  type="button"
+                  onClick={() => setAccountMenuOpen((v) => !v)}
+                  aria-label="Account menu"
+                  className="flex h-10 items-center gap-2 rounded-full px-2.5 text-maroon-800 hover:bg-maroon-800/5 sm:px-3"
+                >
+                  <User size={20} />
+                  <span className="hidden text-sm font-medium sm:inline">
+                    {customer.name?.split(" ")[0] ?? "Account"}
+                  </span>
+                </button>
+              ) : (
+                <button
+                  type="button"
+                  onClick={() => router.push("/login")}
+                  aria-label="Login"
+                  className="flex h-10 items-center gap-2 rounded-full px-2.5 text-maroon-800 hover:bg-maroon-800/5 sm:px-3"
+                >
+                  <User size={20} />
+                  <span className="hidden text-sm font-medium sm:inline">Login / Sign up</span>
+                </button>
+              )}
 
-              {accountMenuOpen && customer && (
+              {customer && accountMenuOpen && (
                 <div
                   className="absolute right-0 mt-2 w-44 rounded-xl border border-cream-300 bg-cream-50 p-1 shadow-card"
                   role="menu"
@@ -202,26 +214,12 @@ export function Header() {
                     }}
                     className={cn(
                       "flex w-full items-center gap-2 rounded-lg px-3 py-2 text-sm font-medium text-maroon-900 hover:bg-maroon-800/5",
-                      !customer && "hidden",
+                      !customer && "hidden sm:inline-flex",
+                      "login-item"
                     )}
                     role="menuitem"
                   >
                     My Account
-                  </button>
-
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setAccountMenuOpen(false);
-                      router.push("/login");
-                    }}
-                    className={cn(
-                      "flex w-full items-center gap-2 rounded-lg px-3 py-2 text-sm font-medium text-maroon-900 hover:bg-maroon-800/5",
-                      customer && "hidden",
-                    )}
-                    role="menuitem"
-                  >
-                    Login / Sign up
                   </button>
 
                   <button

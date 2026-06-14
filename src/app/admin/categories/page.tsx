@@ -15,6 +15,8 @@ import {
 } from "@/components/admin/ui";
 import { uid, betterSlugify } from "@/lib/utils";
 import type { Category } from "@/lib/types";
+import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
+import { toast } from "@/components/ui/toast";
 
 function CategoryEditor({
   category,
@@ -62,8 +64,9 @@ function CategoryEditor({
     onSave({
       ...draft,
       name,
-      slug: (draft.slug.trim() ? betterSlugify(draft.slug) : betterSlugify(name)),
-
+      slug: draft.slug.trim()
+        ? betterSlugify(draft.slug)
+        : betterSlugify(name),
       description: draft.description?.trim() || undefined,
       image: draft.image?.trim() || undefined,
       order: Number(draft.order) || 0,
@@ -93,8 +96,6 @@ function CategoryEditor({
             onChange={(e) => {
               const name = e.target.value;
               setDraft((d) => {
-                // For new categories: auto-generate slug from name when the slug is empty.
-                // If admin types a slug explicitly, we stop auto-overwriting it.
                 const shouldAutoSlug = isNew && !d.slug;
                 return {
                   ...d,
@@ -106,6 +107,7 @@ function CategoryEditor({
             placeholder="Sweets"
           />
         </Field>
+
         <Field label="Slug" hint="Used in /collections/[slug].">
           <input
             className={inputClass}
@@ -114,6 +116,7 @@ function CategoryEditor({
             placeholder="sweets"
           />
         </Field>
+
         <Field label="Description">
           <textarea
             className={`${inputClass} h-auto py-2`}
@@ -124,17 +127,28 @@ function CategoryEditor({
             }
           />
         </Field>
-        <Field label="Category image" hint="Shown in the circle nav below the header. JPG, PNG, or WebP up to 5 MB.">
+
+        <Field
+          label="Category image"
+          hint="Shown in the circle nav below the header. JPG, PNG, or WebP up to 5 MB."
+        >
           <div className="flex flex-wrap items-center gap-4">
             <div className="relative h-20 w-20 overflow-hidden rounded-full border border-cream-300 bg-cream-50">
               {draft.image ? (
-                <Image src={draft.image} alt="" fill className="object-cover" sizes="80px" />
+                <Image
+                  src={draft.image}
+                  alt=""
+                  fill
+                  className="object-cover"
+                  sizes="80px"
+                />
               ) : (
                 <span className="flex h-full w-full items-center justify-center text-xs text-ink-400">
                   No image
                 </span>
               )}
             </div>
+
             <div className="flex flex-col gap-2">
               <input
                 ref={fileRef}
@@ -150,9 +164,14 @@ function CategoryEditor({
                 disabled={uploading}
               >
                 <Upload size={16} />
-                {uploading ? "Uploading…" : draft.image ? "Replace image" : "Upload image"}
+                {uploading
+                  ? "Uploading…"
+                  : draft.image
+                    ? "Replace image"
+                    : "Upload image"}
               </AdminButton>
-              {draft.image && (
+
+              {draft.image ? (
                 <button
                   type="button"
                   onClick={() => setDraft((d) => ({ ...d, image: "" }))}
@@ -160,10 +179,11 @@ function CategoryEditor({
                 >
                   Remove image
                 </button>
-              )}
+              ) : null}
             </div>
           </div>
         </Field>
+
         <Field label="Sort order">
           <input
             className={inputClass}
@@ -174,7 +194,8 @@ function CategoryEditor({
             }
           />
         </Field>
-        {error && <p className="text-sm text-maroon-700">{error}</p>}
+
+        {error ? <p className="text-sm text-maroon-700">{error}</p> : null}
       </div>
     </Modal>
   );
@@ -185,16 +206,50 @@ export default function AdminCategoriesPage() {
   const [editing, setEditing] = useState<Category | null>(null);
   const [creating, setCreating] = useState(false);
 
-  function remove(c: Category) {
+  const [confirmOpen, setConfirmOpen] = useState(false);
+  const [confirmId, setConfirmId] = useState<string | null>(null);
+  const [confirmTitle, setConfirmTitle] = useState("");
+  const [confirmDescription, setConfirmDescription] = useState<string | undefined>(undefined);
+
+  function requestDelete(c: Category) {
     const count = products.filter((p) => p.category === c.slug).length;
-    const msg =
+
+    setConfirmId(c.id);
+    setConfirmTitle("Delete category?");
+    setConfirmDescription(
       count > 0
-        ? `"${c.name}" has ${count} product(s). Delete the category anyway? Those products will keep their category slug.`
-        : `Delete "${c.name}"?`;
-    if (window.confirm(msg)) deleteCategory(c.id);
+        ? `"${c.name}" has ${count} product(s). Delete anyway? Those products will keep their category slug.`
+        : `Delete "${c.name}"?`,
+    );
+    setConfirmOpen(true);
   }
 
-  const sorted = [...categories].sort((a, b) => (a.order ?? 0) - (b.order ?? 0));
+  async function confirmDelete() {
+    if (!confirmId) return;
+    const id = confirmId;
+    setConfirmOpen(false);
+
+    try {
+      await deleteCategory(id);
+      toast({
+        tone: "success",
+        title: "Category deleted",
+        message: "Your category has been removed.",
+      });
+    } catch (err) {
+      toast({
+        tone: "error",
+        title: "Delete failed",
+        message: err instanceof Error ? err.message : "Please try again.",
+      });
+    } finally {
+      setConfirmId(null);
+    }
+  }
+
+  const sorted = [...categories].sort(
+    (a, b) => (a.order ?? 0) - (b.order ?? 0),
+  );
 
   return (
     <div className="space-y-6">
@@ -207,6 +262,7 @@ export default function AdminCategoriesPage() {
             {categories.length} categor{categories.length !== 1 ? "ies" : "y"}
           </p>
         </div>
+
         <AdminButton onClick={() => setCreating(true)}>
           <Plus size={16} /> Add category
         </AdminButton>
@@ -222,6 +278,7 @@ export default function AdminCategoriesPage() {
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
           {sorted.map((c) => {
             const count = products.filter((p) => p.category === c.slug).length;
+
             return (
               <div
                 key={c.id}
@@ -229,9 +286,16 @@ export default function AdminCategoriesPage() {
               >
                 <div className="mb-4 flex justify-center">
                   <div className="relative h-16 w-16 overflow-hidden rounded-full border border-cream-300 bg-cream-50">
-                    <Image src={getCategoryImage(c)} alt={c.name} fill className="object-cover" sizes="64px" />
+                    <Image
+                      src={getCategoryImage(c)}
+                      alt={c.name}
+                      fill
+                      className="object-cover"
+                      sizes="64px"
+                    />
                   </div>
                 </div>
+
                 <div className="flex items-start justify-between gap-3">
                   <div className="min-w-0">
                     <h3 className="font-serif text-lg font-semibold text-maroon-900">
@@ -239,6 +303,7 @@ export default function AdminCategoriesPage() {
                     </h3>
                     <p className="text-xs text-ink-400">/{c.slug}</p>
                   </div>
+
                   <div className="flex shrink-0 gap-1">
                     <button
                       type="button"
@@ -248,9 +313,10 @@ export default function AdminCategoriesPage() {
                     >
                       <Pencil size={16} />
                     </button>
+
                     <button
                       type="button"
-                      onClick={() => remove(c)}
+                      onClick={() => requestDelete(c)}
                       aria-label={`Delete ${c.name}`}
                       className="flex h-9 w-9 items-center justify-center rounded-lg text-ink-500 hover:bg-maroon-700/5 hover:text-maroon-700"
                     >
@@ -258,11 +324,13 @@ export default function AdminCategoriesPage() {
                     </button>
                   </div>
                 </div>
-                {c.description && (
+
+                {c.description ? (
                   <p className="mt-2 line-clamp-2 text-sm text-ink-500">
                     {c.description}
                   </p>
-                )}
+                ) : null}
+
                 <p className="mt-3 text-xs font-medium text-saffron-600">
                   {count} product{count !== 1 ? "s" : ""}
                 </p>
@@ -272,7 +340,7 @@ export default function AdminCategoriesPage() {
         </div>
       )}
 
-      {(editing || creating) && (
+      {editing || creating ? (
         <CategoryEditor
           category={editing}
           onSave={(c) => {
@@ -285,7 +353,21 @@ export default function AdminCategoriesPage() {
             setCreating(false);
           }}
         />
-      )}
+      ) : null}
+
+      <ConfirmDialog
+        open={confirmOpen}
+        title={confirmTitle || "Confirm"}
+        description={confirmDescription}
+        confirmLabel="Delete"
+        tone="danger"
+        onCancel={() => {
+          setConfirmOpen(false);
+          setConfirmId(null);
+        }}
+        onConfirm={() => void confirmDelete()}
+      />
     </div>
   );
 }
+

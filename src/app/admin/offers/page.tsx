@@ -14,6 +14,8 @@ import {
 import { Badge } from "@/components/ui/Badge";
 import { formatINR, uid } from "@/lib/utils";
 import type { Offer, OfferType } from "@/lib/types";
+import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
+import { toast } from "@/components/ui/toast";
 
 const TYPE_LABEL: Record<OfferType, string> = {
   percent: "% off",
@@ -58,6 +60,7 @@ function OfferEditor({
     if (!title) return setError("A title is required.");
     if (draft.type !== "free_shipping" && draft.value <= 0)
       return setError("Enter a discount value greater than zero.");
+
     onSave({
       ...draft,
       code,
@@ -87,12 +90,11 @@ function OfferEditor({
             <input
               className={`${inputClass} uppercase`}
               value={draft.code}
-              onChange={(e) =>
-                setDraft((d) => ({ ...d, code: e.target.value }))
-              }
+              onChange={(e) => setDraft((d) => ({ ...d, code: e.target.value }))}
               placeholder="BAS10"
             />
           </Field>
+
           <Field label="Type">
             <select
               className={inputClass}
@@ -144,6 +146,7 @@ function OfferEditor({
               />
             </Field>
           )}
+
           <Field label="Min. subtotal (₹)" hint="Leave blank for none.">
             <input
               className={inputClass}
@@ -176,13 +179,17 @@ function OfferEditor({
               }
             />
           </Field>
+
           <Field label="Ends (optional)">
             <input
               className={inputClass}
               type="date"
               value={draft.endsAt?.slice(0, 10) ?? ""}
               onChange={(e) =>
-                setDraft((d) => ({ ...d, endsAt: e.target.value || undefined }))
+                setDraft((d) => ({
+                  ...d,
+                  endsAt: e.target.value || undefined,
+                }))
               }
             />
           </Field>
@@ -194,7 +201,7 @@ function OfferEditor({
           label={draft.active ? "Active" : "Inactive"}
         />
 
-        {error && <p className="text-sm text-maroon-700">{error}</p>}
+        {error ? <p className="text-sm text-maroon-700">{error}</p> : null}
       </div>
     </Modal>
   );
@@ -205,21 +212,51 @@ export default function AdminOffersPage() {
   const [editing, setEditing] = useState<Offer | null>(null);
   const [creating, setCreating] = useState(false);
 
-  function remove(o: Offer) {
-    if (window.confirm(`Delete offer "${o.code}"?`)) deleteOffer(o.id);
+  const [confirmOpen, setConfirmOpen] = useState(false);
+  const [confirmId, setConfirmId] = useState<string | null>(null);
+  const [confirmCode, setConfirmCode] = useState<string | null>(null);
+
+  function requestDelete(o: Offer) {
+    setConfirmId(o.id);
+    setConfirmCode(o.code);
+    setConfirmOpen(true);
+  }
+
+  async function confirmDelete() {
+    if (!confirmId) return;
+    const id = confirmId;
+    const code = confirmCode;
+    setConfirmOpen(false);
+
+    try {
+      await deleteOffer(id);
+      toast({
+        tone: "success",
+        title: "Offer deleted",
+        message: code ? `Offer ${code} removed.` : "Offer removed.",
+      });
+    } catch (err) {
+      toast({
+        tone: "error",
+        title: "Delete failed",
+        message: err instanceof Error ? err.message : "Please try again.",
+      });
+    } finally {
+      setConfirmId(null);
+      setConfirmCode(null);
+    }
   }
 
   return (
     <div className="space-y-6">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
-          <h1 className="font-serif text-2xl font-bold text-maroon-900">
-            Offers
-          </h1>
+          <h1 className="font-serif text-2xl font-bold text-maroon-900">Offers</h1>
           <p className="text-sm text-ink-500">
             Coupon codes customers can apply at checkout.
           </p>
         </div>
+
         <AdminButton onClick={() => setCreating(true)}>
           <Plus size={16} /> Add offer
         </AdminButton>
@@ -246,6 +283,7 @@ export default function AdminOffersPage() {
                   <th className="px-4 py-3 text-right font-medium">Actions</th>
                 </tr>
               </thead>
+
               <tbody className="divide-y divide-cream-200">
                 {offers.map((o) => (
                   <tr key={o.id} className="hover:bg-cream-50">
@@ -255,9 +293,7 @@ export default function AdminOffersPage() {
                       </span>
                     </td>
                     <td className="px-4 py-3 text-ink-700">{o.title}</td>
-                    <td className="px-4 py-3 text-ink-500">
-                      {TYPE_LABEL[o.type]}
-                    </td>
+                    <td className="px-4 py-3 text-ink-500">{TYPE_LABEL[o.type]}</td>
                     <td className="px-4 py-3 font-medium text-maroon-900">
                       {offerValueLabel(o)}
                     </td>
@@ -281,7 +317,7 @@ export default function AdminOffersPage() {
                         </button>
                         <button
                           type="button"
-                          onClick={() => remove(o)}
+                          onClick={() => requestDelete(o)}
                           aria-label={`Delete ${o.code}`}
                           className="flex h-9 w-9 items-center justify-center rounded-lg text-ink-500 hover:bg-maroon-700/5 hover:text-maroon-700"
                         >
@@ -311,6 +347,21 @@ export default function AdminOffersPage() {
           }}
         />
       )}
+
+      <ConfirmDialog
+        open={confirmOpen}
+        title="Delete offer?"
+        description={confirmCode ? `Are you sure you want to delete ${confirmCode}?` : undefined}
+        confirmLabel="Delete"
+        tone="danger"
+        onCancel={() => {
+          setConfirmOpen(false);
+          setConfirmId(null);
+          setConfirmCode(null);
+        }}
+        onConfirm={() => void confirmDelete()}
+      />
     </div>
   );
 }
+

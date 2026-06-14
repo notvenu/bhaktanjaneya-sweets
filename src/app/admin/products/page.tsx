@@ -10,12 +10,18 @@ import { AdminButton, EmptyState, inputClass } from "@/components/admin/ui";
 import { Badge } from "@/components/ui/Badge";
 import { formatINR } from "@/lib/utils";
 import type { Product } from "@/lib/types";
+import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
+import { toast } from "@/components/ui/toast";
 
 export default function AdminProductsPage() {
   const { products, categories, saveProduct, deleteProduct } = useAdmin();
   const [query, setQuery] = useState("");
   const [editing, setEditing] = useState<Product | null>(null);
   const [creating, setCreating] = useState(false);
+
+  const [confirmOpen, setConfirmOpen] = useState(false);
+  const [confirmId, setConfirmId] = useState<string | null>(null);
+  const [confirmName, setConfirmName] = useState<string | null>(null);
 
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase();
@@ -27,9 +33,32 @@ export default function AdminProductsPage() {
     );
   }, [products, query]);
 
-  function remove(p: Product) {
-    if (window.confirm(`Delete "${p.name}"? This cannot be undone.`)) {
-      deleteProduct(p.id);
+  function requestDelete(p: Product) {
+    setConfirmId(p.id);
+    setConfirmName(p.name);
+    setConfirmOpen(true);
+  }
+
+  async function confirmDelete() {
+    if (!confirmId) return;
+    const id = confirmId;
+    setConfirmOpen(false);
+    try {
+      await deleteProduct(id);
+      toast({
+        tone: "success",
+        title: "Product deleted",
+        message: confirmName ? `Removed "${confirmName}".` : "Removed product.",
+      });
+    } catch (err) {
+      toast({
+        tone: "error",
+        title: "Delete failed",
+        message: err instanceof Error ? err.message : "Please try again.",
+      });
+    } finally {
+      setConfirmId(null);
+      setConfirmName(null);
     }
   }
 
@@ -151,7 +180,7 @@ export default function AdminProductsPage() {
                           </button>
                           <button
                             type="button"
-                            onClick={() => remove(p)}
+                            onClick={() => requestDelete(p)}
                             aria-label={`Delete ${p.name}`}
                             className="flex h-9 w-9 items-center justify-center rounded-lg text-ink-500 hover:bg-maroon-700/5 hover:text-maroon-700"
                           >
@@ -183,6 +212,21 @@ export default function AdminProductsPage() {
           }}
         />
       )}
+
+      <ConfirmDialog
+        open={confirmOpen}
+        title="Delete product?"
+        description={confirmName ? `Are you sure you want to delete "${confirmName}"?` : undefined}
+        confirmLabel="Delete"
+        tone="danger"
+        onCancel={() => {
+          setConfirmOpen(false);
+          setConfirmId(null);
+          setConfirmName(null);
+        }}
+        onConfirm={() => void confirmDelete()}
+      />
     </div>
   );
 }
+
