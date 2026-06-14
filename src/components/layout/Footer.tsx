@@ -46,7 +46,7 @@ function FooterColumn({
   links: { href: string; label: string }[];
 }) {
   return (
-    <div>
+    <div className="min-w-0">
       <h3 className="mb-4 text-sm font-semibold uppercase tracking-wide text-saffron-400">
         {title}
       </h3>
@@ -65,11 +65,11 @@ function FooterColumn({
 
 export function Footer() {
   return (
-    <footer className="mt-16 bg-maroon-900 text-cream-50">
+    <footer className="mt-8 bg-maroon-900 text-cream-50 sm:mt-10">
       <Container>
-        <div className="grid grid-cols-2 gap-10 py-14 md:grid-cols-3 lg:grid-cols-6">
+        <div className="grid min-w-0 grid-cols-1 gap-8 py-12 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-[2fr_1fr_1.25fr_1.15fr_1.6fr] lg:gap-10 lg:py-14">
           {/* Brand */}
-          <div className="col-span-2 lg:col-span-2">
+          <div className="min-w-0 sm:col-span-2 lg:col-span-1">
             <Link href="/" className="inline-flex items-center gap-3">
               <Image
                 src="/images/logo.png"
@@ -110,15 +110,15 @@ export function Footer() {
           <FooterColumn title="Policies" links={policyLinks} />
 
           {/* Newsletter + contact */}
-          <div className="col-span-2 lg:col-span-1">
+          <div className="min-w-0 sm:col-span-2 lg:col-span-1">
             <h3 className="mb-4 text-sm font-semibold uppercase tracking-wide text-saffron-400">
               Stay in touch
             </h3>
-            <NewsletterForm />
+            <NewsletterForm stacked />
             <ul className="mt-5 space-y-2.5 text-sm text-cream-100/80">
               <li className="flex items-start gap-2">
                 <MapPin size={16} className="mt-0.5 shrink-0 text-saffron-400" />
-                {config.contact.address}
+                <span className="min-w-0">{config.contact.address}</span>
               </li>
               <li className="flex items-center gap-2">
                 <Phone size={16} className="shrink-0 text-saffron-400" />
@@ -128,7 +128,7 @@ export function Footer() {
               </li>
               <li className="flex items-center gap-2">
                 <Mail size={16} className="shrink-0 text-saffron-400" />
-                <a href={`mailto:${config.contact.email}`} className="hover:text-saffron-300">
+                <a href={`mailto:${config.contact.email}`} className="min-w-0 break-all hover:text-saffron-300">
                   {config.contact.email}
                 </a>
               </li>
@@ -139,14 +139,14 @@ export function Footer() {
 
       <div className="border-t border-cream-50/10">
         <Container>
-          <div className="flex flex-col items-center justify-between gap-3 py-5 text-xs text-cream-100/70 sm:flex-row">
-            <p>
+          <div className="flex min-w-0 flex-col items-center justify-between gap-3 py-5 text-center text-xs text-cream-100/70 sm:flex-row sm:text-left">
+            <p className="min-w-0">
               &copy; {new Date().getFullYear()} {config.businessName}. All rights
               reserved.
             </p>
-            <p className="inline-flex items-center gap-1.5">
+            <p className="inline-flex min-w-0 items-center gap-1.5">
               <ShieldCheck size={14} className="text-saffron-400" />
-              Secure WhatsApp ordering &middot; Online payments coming soon
+              <span>Secure WhatsApp ordering &middot; Online payments coming soon</span>
             </p>
             <Link href="/admin" className="transition-colors hover:text-saffron-300">
               Admin

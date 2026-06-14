@@ -74,7 +74,7 @@ function LoginInner() {
   }
 
   return (
-    <div className="rounded-3xl border border-cream-200 bg-white p-7 shadow-soft sm:p-8">
+    <div className="w-full min-w-0 overflow-hidden rounded-3xl border border-cream-200 bg-white p-5 shadow-soft sm:p-8">
       <span className="flex h-12 w-12 items-center justify-center rounded-full bg-maroon-800 text-saffron-400">
         {step === "phone" ? <Phone size={22} /> : <ShieldCheck size={22} />}
       </span>
@@ -90,7 +90,7 @@ function LoginInner() {
               : "Tell us the basics, then verify your number with OTP."}
           </p>
 
-          <div className="mt-5 grid grid-cols-2 rounded-full bg-cream-100 p-1 text-sm font-semibold">
+          <div className="mt-5 grid min-w-0 grid-cols-2 rounded-full bg-cream-100 p-1 text-sm font-semibold">
             <button
               type="button"
               onClick={() => switchMode("login")}
@@ -138,7 +138,7 @@ function LoginInner() {
           <label className="mt-6 block text-sm font-medium text-maroon-900">
             Phone number
           </label>
-          <div className="mt-1.5 flex items-center rounded-xl border border-cream-300 bg-white focus-within:border-saffron-400 focus-within:ring-2 focus-within:ring-saffron-400/40">
+          <div className="mt-1.5 flex min-w-0 items-center rounded-xl border border-cream-300 bg-white focus-within:border-saffron-400 focus-within:ring-2 focus-within:ring-saffron-400/40">
             <span className="pl-4 pr-2 text-sm text-ink-500">+91</span>
             <input
               autoFocus
@@ -146,7 +146,7 @@ function LoginInner() {
               onChange={(e) => setPhone(e.target.value.replace(/\D/g, "").slice(0, 10))}
               inputMode="tel"
               placeholder="98765 43210"
-              className="h-12 flex-1 rounded-r-xl bg-transparent pr-4 text-sm focus:outline-none"
+              className="h-12 min-w-0 flex-1 rounded-r-xl bg-transparent pr-4 text-sm focus:outline-none"
             />
           </div>
           {error && <p className="mt-2 text-sm text-maroon-700">{error}</p>}
@@ -229,7 +229,7 @@ function LoginInner() {
 export default function LoginPage() {
   return (
     <Container>
-      <div className="mx-auto max-w-md py-14 sm:py-20">
+      <div className="mx-auto w-full min-w-0 max-w-md py-10 sm:py-20">
         <Suspense fallback={null}>
           <LoginInner />
         </Suspense>

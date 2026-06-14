@@ -47,13 +47,13 @@ export function SiteChrome({
   })();
 
   return (
-    <>
+    <div className="flex min-h-full w-full min-w-0 flex-col overflow-x-hidden">
       {announcement}
       {header}
       {showCategoryNav ? categoryNav : null}
-      <main className="flex-1">{children}</main>
+      <main className="min-w-0 flex-1 overflow-x-hidden">{children}</main>
       {footer}
       {drawer}
-    </>
+    </div>
   );
 }
