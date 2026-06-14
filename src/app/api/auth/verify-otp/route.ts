@@ -24,13 +24,14 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: "Invalid or expired code" }, { status: 400 });
   }
 
-  let { data: customer, error: customerError } = await supabaseAdmin
+  const { data: existingCustomer, error: customerError } = await supabaseAdmin
     .from("customers")
     .select("*")
     .eq("phone", phone)
     .limit(1)
     .maybeSingle();
   if (customerError) return NextResponse.json({ error: customerError.message }, { status: 500 });
+  let customer = existingCustomer;
 
   if (mode === "login" && !customer) {
     return NextResponse.json({ error: "No account found. Please sign up first." }, { status: 404 });

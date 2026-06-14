@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import {
@@ -29,7 +29,6 @@ import type { ErrorDetails } from "@/lib/api/errors";
 import { formatAddressLines, isCompleteAddress } from "@/lib/address";
 import { config } from "@/lib/config";
 import { INDIAN_STATES } from "@/lib/constants/india-states";
-import { STATE_DISTRICTS } from "@/lib/constants/india-locations";
 import { loadRazorpayScript, openRazorpayCheckout } from "@/lib/razorpay";
 import { formatINR, uid } from "@/lib/utils";
 import type { Offer, Order, PaymentMethod, ShippingAddress } from "@/lib/types";
@@ -79,6 +78,7 @@ export default function CartPage() {
 
   const hasSavedAddress = isCompleteAddress(customer?.savedAddress);
 
+  /* eslint-disable react-hooks/set-state-in-effect */
   useEffect(() => {
     if (hasSavedAddress) {
       setAddressMode("saved");
@@ -98,6 +98,7 @@ export default function CartPage() {
       setPincode((prev) => prev || customer.savedAddress?.pincode || "");
     }
   }, [customer]);
+  /* eslint-enable react-hooks/set-state-in-effect */
 
   useEffect(() => {
     getActiveOffers().then(setOffers).catch(() => setOffers([]));
@@ -108,6 +109,32 @@ export default function CartPage() {
     return Array.from(new Set(pincodeDetails.postOffices.map((po) => po.district).filter(Boolean)));
   }, [pincodeDetails]);
 
+  const findAddressByPincode = useCallback(async () => {
+    if (!/^\d{6}$/.test(pincode.trim())) return;
+
+    setPincodeHint("");
+    setLookingUpPincode(true);
+    try {
+      const details = await lookupPincode(pincode.trim());
+      lastLookupPincode.current = pincode.trim();
+      setPincodeDetails(details);
+      setCity((prev) => prev || details.city);
+      setState(details.state);
+      setDistrict((prev) => prev || details.district);
+
+      const dists = Array.from(new Set(details.postOffices.map((po) => po.district).filter(Boolean)));
+      if (dists.length === 1) {
+        setDistrict(dists[0]);
+      } else if (district && !dists.includes(district)) {
+        setDistrict("");
+      }
+    } catch (error) {
+      setPincodeHint(getErrorMessage(error, "Could not find this PIN code."));
+    } finally {
+      setLookingUpPincode(false);
+    }
+  }, [district, pincode]);
+
   useEffect(() => {
     if (addressMode !== "new") return;
     const nextPincode = pincode.trim();
@@ -115,7 +142,7 @@ export default function CartPage() {
       return;
     }
     void findAddressByPincode();
-  }, [pincode, addressMode]);
+  }, [pincode, addressMode, findAddressByPincode]);
 
   const orderedItems = useMemo(
     () =>
@@ -336,63 +363,20 @@ export default function CartPage() {
     }
   }
 
-  const [guestPromptOpen, setGuestPromptOpen] = useState(false);
-
   function goLoginForPurchase() {
     const redirect = `/cart`;
     window.location.href = `/login?redirect=${encodeURIComponent(redirect)}`;
   }
 
-function closeGuestPrompt() {
-    setGuestPromptOpen(false);
-  }
-
-  function confirmGuestPurchase() {
-    setGuestPromptOpen(false);
-    if (paymentMethod === "cod") void placeCodOrder();
-    else void placeRazorpayOrder();
-  }
-
-  function confirmLoginPurchase() {
-    closeGuestPrompt();
-    goLoginForPurchase();
-  }
-
   function handlePlaceOrder() {
     if (!customer) {
-      setGuestPromptOpen(true);
+      goLoginForPurchase();
       return;
     }
     if (paymentMethod === "cod") void placeCodOrder();
     else void placeRazorpayOrder();
   }
 
-
-  async function findAddressByPincode() {
-    if (!/^\d{6}$/.test(pincode.trim())) return;
-
-    setPincodeHint("");
-    setLookingUpPincode(true);
-    try {
-      const details = await lookupPincode(pincode.trim());
-      lastLookupPincode.current = pincode.trim();
-      setPincodeDetails(details);
-      setCity((prev) => prev || details.city);
-      setState(details.state);
-      setDistrict((prev) => prev || details.district);
-
-      const dists = Array.from(new Set(details.postOffices.map((po) => po.district).filter(Boolean)));
-      if (dists.length === 1) {
-        setDistrict(dists[0]);
-      } else if (district && !dists.includes(district)) {
-        setDistrict("");
-      }
-    } catch (error) {
-      setPincodeHint(getErrorMessage(error, "Could not find this PIN code."));
-    } finally {
-      setLookingUpPincode(false);
-    }
-  }
 
   if (placed) {
     return (

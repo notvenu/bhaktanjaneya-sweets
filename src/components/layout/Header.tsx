@@ -3,7 +3,8 @@
 import Link from "next/link";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
-import { useState } from "react";
+import { Fragment, useEffect, useState } from "react";
+
 import {
   Menu,
   X,
@@ -38,47 +39,58 @@ export function Header() {
   const [menuOpen, setMenuOpen] = useState(false);
   const [q, setQ] = useState("");
 
+  function lockBodyScroll(locked: boolean) {
+    // Use class-based locking to avoid getting stuck when route changes.
+    document.body.classList.toggle("scroll-locked", locked);
+    document.body.style.overflow = locked ? "hidden" : "";
+  }
 
-  
+  useEffect(() => {
+    if (menuOpen) lockBodyScroll(true);
+    else lockBodyScroll(false);
+
+    return () => {
+      // Safety net on unmount
+      lockBodyScroll(false);
+    };
+  }, [menuOpen]);
 
 
 
-
-
-
-
-
+  function closeMenu() {
+    setMenuOpen(false);
+    lockBodyScroll(false);
+  }
 
   function submitSearch(e: React.FormEvent<HTMLFormElement>) {
-
     e.preventDefault();
     const query = q.trim();
-    setMenuOpen(false);
-    document.body.style.overflow = "";
+    closeMenu();
     router.push(query ? `/shop?q=${encodeURIComponent(query)}` : "/shop");
   }
 
 
   return (
+    <Fragment>
     <header className="sticky top-0 z-40 border-b border-cream-300/60 bg-cream-50/95 backdrop-blur supports-[backdrop-filter]:bg-cream-50/80">
       <Container>
-        <div className="flex h-16 items-center gap-3 lg:h-20">
+        <div className="flex h-16 min-w-0 items-center gap-2 sm:gap-3 lg:h-20">
           {/* Mobile menu toggle */}
           <button
             type="button"
             onClick={() => {
-              document.body.style.overflow = "hidden";
               setMenuOpen(true);
             }}
 
+
             aria-label="Open menu"
-            className="-ml-2 flex h-10 w-10 items-center justify-center rounded-full text-maroon-800 hover:bg-maroon-800/5 lg:hidden"
+            className="-ml-2 flex h-10 w-10 shrink-0 items-center justify-center rounded-full text-maroon-800 hover:bg-maroon-800/5 lg:hidden"
           >
             <Menu size={22} />
           </button>
 
           {/* Logo */}
-          <Link href="/" className="flex items-center gap-2.5">
+          <Link href="/" className="flex min-w-0 items-center gap-2 sm:gap-2.5">
             <Image
               src="/images/logo.png"
               alt="Bhaktanjaneya Sweets"
@@ -87,7 +99,7 @@ export function Header() {
               priority
               className="h-11 w-11 shrink-0 rounded-full sm:h-12 sm:w-12"
             />
-            <span className="font-serif text-lg font-bold leading-none text-maroon-900 sm:text-xl">
+            <span className="truncate font-serif text-base font-bold leading-none text-maroon-900 max-[380px]:hidden sm:text-xl">
               Bhaktanjaneya
               <span className="block text-[11px] font-medium uppercase tracking-[0.2em] text-saffron-600">
                 Sweets
@@ -113,7 +125,7 @@ export function Header() {
           </form>
 
           {/* Actions */}
-          <div className="ml-auto flex items-center gap-1 sm:gap-2">
+          <div className="ml-auto flex shrink-0 items-center gap-0.5 sm:gap-2">
             <a
               href={waLink(`Hello ${config.businessName}! I have a question.`)}
               target="_blank"
@@ -164,21 +176,16 @@ export function Header() {
         </nav>
       </Container>
 
+    </header>
+
       {/* Mobile menu */}
       {menuOpen && (
-        <div className="fixed inset-0 z-50 lg:hidden">
-          {/* prevent background scroll while menu is open */}
-
-
-
+        <div className="fixed inset-0 z-50 w-screen overflow-hidden lg:hidden">
           <div
-            className="absolute inset-0 bg-ink-900/50"
-            onClick={() => {
-              document.body.style.overflow = "";
-              setMenuOpen(false);
-            }}
+            className="absolute inset-0 bg-ink-900/65"
+            onClick={closeMenu}
           />
-          <div className="absolute inset-y-0 left-0 flex w-full max-w-sm flex-col bg-cream-50 shadow-card">
+          <div className="absolute inset-y-0 left-0 flex w-[min(100vw,24rem)] max-w-full flex-col overflow-hidden bg-cream-50 shadow-card">
 
             <div className="flex items-center justify-between border-b border-cream-300 px-4 py-4">
               <span className="font-serif text-lg font-bold text-maroon-900">
@@ -186,7 +193,7 @@ export function Header() {
               </span>
               <button
                 type="button"
-                onClick={() => setMenuOpen(false)}
+                onClick={closeMenu}
                 aria-label="Close menu"
                 className="flex h-10 w-10 items-center justify-center rounded-full text-maroon-800 hover:bg-maroon-800/5"
               >
@@ -214,7 +221,7 @@ export function Header() {
                 <Link
                   key={l.href + l.label}
                   href={l.href}
-                  onClick={() => setMenuOpen(false)}
+                  onClick={closeMenu}
                   className="block rounded-xl px-4 py-3 text-base font-medium text-maroon-900 hover:bg-maroon-800/5"
                 >
                   {l.label}
@@ -225,7 +232,7 @@ export function Header() {
             <div className="border-t border-cream-300 p-4">
               <Link
                 href={customer ? "/account" : "/login"}
-                onClick={() => setMenuOpen(false)}
+                onClick={closeMenu}
                 className="flex items-center gap-2 text-sm font-medium text-maroon-800"
               >
                 <User size={18} />
@@ -246,6 +253,6 @@ export function Header() {
           </div>
         </div>
       )}
-    </header>
+    </Fragment>
   );
 }

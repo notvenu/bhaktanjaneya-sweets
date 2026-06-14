@@ -46,12 +46,14 @@ export default function AdminOrdersPage() {
     [orders, filter],
   );
 
-  useEffect(() => {
+  /* eslint-disable react-hooks/set-state-in-effect */
+  useEffect(() => {
     if (!viewing) return;
     setDeliveryCompany(viewing.deliveryCompany ?? "");
     setDeliveryTrackingId(viewing.deliveryTrackingId ?? "");
     setModalStatus(viewing.status);
-  }, [viewing]);
+  }, [viewing]);
+  /* eslint-enable react-hooks/set-state-in-effect */
 
   async function handleStatusChange(order: Order, nextStatus: OrderStatus) {
     if (nextStatus === "shipped") {

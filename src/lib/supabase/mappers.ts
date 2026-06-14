@@ -154,9 +154,12 @@ export function customerFromRow(row: Row, ordersCount = 0): Customer {
 }
 
 export function customerToRow(customer: Partial<Customer>): Row {
-  const { savedAddress, createdAt, ordersCount, ...rest } = customer;
+  const { savedAddress, createdAt, ...rest } = customer;
+  const row = { ...rest } as Row;
+  delete row.ordersCount;
+
   return {
-    ...rest,
+    ...row,
     ...(savedAddress !== undefined ? { saved_address: savedAddress ?? null } : {}),
     ...(createdAt !== undefined ? { created_at: createdAt } : {}),
   };

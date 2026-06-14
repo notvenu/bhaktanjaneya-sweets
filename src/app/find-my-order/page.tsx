@@ -9,7 +9,6 @@ import { Alert } from "@/components/ui/Alert";
 import { Badge } from "@/components/ui/Badge";
 import { Container } from "@/components/ui/Container";
 import { useAuth } from "@/context/AuthContext";
-import { useRouter } from "next/navigation";
 import { apiGet } from "@/lib/api/client";
 import { formatINR, formatDate } from "@/lib/utils";
 import type { Order, OrderStatus, PaymentStatus } from "@/lib/types";
@@ -66,7 +65,6 @@ function maskTrackingId(trackingId?: string) {
 }
 
 export default function FindMyOrderPage() {
-  const router = useRouter();
   const { customer } = useAuth();
 
   // If logged in: show authenticated user's orders
@@ -118,7 +116,7 @@ export default function FindMyOrderPage() {
       try {
         const data = await apiGet<Order[]>("/orders");
         if (!cancelled) setOrders(data);
-      } catch (e) {
+      } catch {
         if (!cancelled) setOrdersError("Could not load your orders. Please refresh the page.");
       } finally {
         if (!cancelled) setOrdersLoading(false);

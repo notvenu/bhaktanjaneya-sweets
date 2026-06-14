@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { useParams } from "next/navigation";
 import { Search } from "lucide-react";
 
@@ -41,7 +41,7 @@ export default function PublicOrderLookupPage() {
 
   const isSearchable = orderId.trim().length >= 6;
 
-  async function runLookup() {
+  const runLookup = useCallback(async () => {
     const raw = orderId.trim();
     if (!raw) return;
 
@@ -58,15 +58,16 @@ export default function PublicOrderLookupPage() {
     } finally {
       setLoading(false);
     }
-  }
+  }, [orderId]);
 
   // If route has an id, auto-lookup once.
+  /* eslint-disable react-hooks/set-state-in-effect */
   useEffect(() => {
     if (!idFromRoute) return;
     if (order) return;
     void runLookup();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [idFromRoute]);
+  }, [idFromRoute, order, runLookup]);
+  /* eslint-enable react-hooks/set-state-in-effect */
 
 
   return (

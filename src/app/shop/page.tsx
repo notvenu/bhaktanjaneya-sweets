@@ -126,7 +126,7 @@ export default async function ShopPage(props: PageProps<"/shop">) {
 
       // lightweight fuzzy edit distance on short tokens
       if (qt.length >= 3 && qt.length <= 10) {
-        let best = maxTokenEditScore(qt, [...nTokens, ...cTokens]);
+        const best = maxTokenEditScore(qt, [...nTokens, ...cTokens]);
         score += best;
       }
     }

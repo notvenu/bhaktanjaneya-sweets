@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { LogOut, Package, Pencil, Check, User, Truck, MapPin, X } from "lucide-react";
@@ -64,6 +64,31 @@ export default function AccountPage() {
     return Array.from(new Set([...fromState, ...fromPincode])).sort();
   }, [address.state, pincodeDetails]);
 
+  const findAddressByPincode = useCallback(async () => {
+    if (!/^\d{6}$/.test(address.pincode.trim())) return;
+
+    setAddressMessage("");
+    setLookingUpPincode(true);
+    try {
+      const details = await lookupPincode(address.pincode.trim());
+      lastLookupPincode.current = address.pincode.trim();
+      setPincodeDetails(details);
+      setAddress((prev) => ({
+        ...prev,
+        district: prev.district || details.district,
+        city: prev.city || details.city,
+        state: details.state,
+      }));
+      setAddressMessageTone("success");
+      setAddressMessage("City and state updated from your PIN code.");
+    } catch (error) {
+      setAddressMessageTone("error");
+      setAddressMessage(getErrorMessage(error, "Could not find this PIN code."));
+    } finally {
+      setLookingUpPincode(false);
+    }
+  }, [address.pincode]);
+
   // Hydration: intentionally setting state on mount
   // eslint-disable-next-line react-hooks/set-state-in-effect
   useEffect(() => setMounted(true), []);
@@ -99,7 +124,7 @@ export default function AccountPage() {
       return;
     }
     void findAddressByPincode();
-  }, [address.pincode]);
+  }, [address.pincode, findAddressByPincode]);
 
   if (!mounted) {
     return (
@@ -196,31 +221,6 @@ export default function AccountPage() {
       setOrderActionError(details.hint ? `${details.message} ${details.hint}` : details.message);
     } finally {
       setCancellingId(null);
-    }
-  }
-
-  async function findAddressByPincode() {
-    if (!/^\d{6}$/.test(address.pincode.trim())) return;
-
-    setAddressMessage("");
-    setLookingUpPincode(true);
-    try {
-      const details = await lookupPincode(address.pincode.trim());
-      lastLookupPincode.current = address.pincode.trim();
-      setPincodeDetails(details);
-      setAddress((prev) => ({
-        ...prev,
-        district: prev.district || details.district,
-        city: prev.city || details.city,
-        state: details.state,
-      }));
-      setAddressMessageTone("success");
-      setAddressMessage("City and state updated from your PIN code.");
-    } catch (error) {
-      setAddressMessageTone("error");
-      setAddressMessage(getErrorMessage(error, "Could not find this PIN code."));
-    } finally {
-      setLookingUpPincode(false);
     }
   }
 
