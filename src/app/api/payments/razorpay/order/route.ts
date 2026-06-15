@@ -7,7 +7,18 @@ export async function POST(req: Request) {
 
   const keyId = process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID ?? "";
   const keySecret = process.env.RAZORPAY_KEY_SECRET ?? "";
-  if (!keyId || !keySecret) return NextResponse.json({ error: "Razorpay not configured" }, { status: 500 });
+  if (!keyId || !keySecret) {
+    return NextResponse.json(
+      {
+        error: "Razorpay not configured",
+        missing: {
+          NEXT_PUBLIC_RAZORPAY_KEY_ID: !keyId,
+          RAZORPAY_KEY_SECRET: !keySecret,
+        },
+      },
+      { status: 500 },
+    );
+  }
 
   // Create order via Razorpay REST API
   const resp = await fetch("https://api.razorpay.com/v1/orders", {

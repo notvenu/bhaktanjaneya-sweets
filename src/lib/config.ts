@@ -17,6 +17,11 @@ export const config = {
   /** Razorpay publishable key id (phase 2). Secret stays on the backend. */
   razorpayKeyId: process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID ?? "",
 
+  /** True when Razorpay env is fully configured (frontend only checks publishable key presence). */
+  razorpayEnabled:
+    Boolean(process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID) &&
+    process.env.NODE_ENV !== "test",
+
   currency: "INR" as const,
   freeShippingThreshold: 700,
   /** Flat delivery fee (INR) when cart is below freeShippingThreshold. */

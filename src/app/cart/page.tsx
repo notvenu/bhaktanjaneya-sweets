@@ -66,7 +66,9 @@ export default function CartPage() {
   const [notes, setNotes] = useState("");
   const [saveAddress, setSaveAddress] = useState(true);
   const [addressMode, setAddressMode] = useState<"saved" | "new">("new");
-  const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>("razorpay");
+  const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>(
+    config.razorpayEnabled ? "razorpay" : "cod",
+  );
 
   const [checkoutError, setCheckoutError] = useState<ErrorDetails | null>(null);
   const [placing, setPlacing] = useState(false);
@@ -295,6 +297,14 @@ export default function CartPage() {
   }
 
   async function placeRazorpayOrder() {
+    if (!config.razorpayEnabled) {
+      setCheckoutError({
+        title: "Online payments unavailable",
+        message:
+          "Razorpay is not configured on the server. Please choose Cash on delivery.",
+      });
+      return;
+    }
     setCheckoutError(null);
     const validationError = validateCheckout();
     if (validationError) {
@@ -825,12 +835,17 @@ export default function CartPage() {
                 Payment method
               </h2>
               <div className="mt-4 space-y-3">
-                <label className="flex cursor-pointer items-start gap-3 rounded-xl border border-cream-300 p-4 has-[:checked]:border-maroon-800 has-[:checked]:bg-maroon-800/5">
+                <label
+                  className={`flex cursor-pointer items-start gap-3 rounded-xl border border-cream-300 p-4 has-[:checked]:border-maroon-800 has-[:checked]:bg-maroon-800/5 ${
+                    !config.razorpayEnabled ? "opacity-50" : ""
+                  }`}
+                >
                   <input
                     type="radio"
                     name="payment"
                     value="razorpay"
                     checked={paymentMethod === "razorpay"}
+                    disabled={!config.razorpayEnabled}
                     onChange={() => setPaymentMethod("razorpay")}
                     className="mt-1 accent-maroon-800"
                   />
@@ -841,6 +856,11 @@ export default function CartPage() {
                     <span className="mt-0.5 block text-xs text-ink-500">
                       UPI, cards, net banking via Razorpay
                     </span>
+                    {!config.razorpayEnabled ? (
+                      <span className="mt-1 block text-xs text-maroon-700">
+                        Razorpay not configured on this server.
+                      </span>
+                    ) : null}
                   </span>
                 </label>
                 <label className="flex cursor-pointer items-start gap-3 rounded-xl border border-cream-300 p-4 has-[:checked]:border-maroon-800 has-[:checked]:bg-maroon-800/5">
