@@ -45,6 +45,8 @@ export default function AccountPage() {
   const [ordersError, setOrdersError] = useState("");
   const [cancellingId, setCancellingId] = useState<string | null>(null);
   const [orderActionError, setOrderActionError] = useState("");
+  const [cancelConfirmOpen, setCancelConfirmOpen] = useState(false);
+  const [cancelConfirmId, setCancelConfirmId] = useState<string | null>(null);
   const [editing, setEditing] = useState(false);
   const [nameInput, setNameInput] = useState("");
   const [address, setAddress] = useState<ShippingAddress>({
@@ -217,9 +219,6 @@ export default function AccountPage() {
     setAddressMessage("");
     setEditingAddress(true);
   }
-
-  const [cancelConfirmOpen, setCancelConfirmOpen] = useState(false);
-  const [cancelConfirmId, setCancelConfirmId] = useState<string | null>(null);
 
   async function doCancelOrderById(orderId: string) {
     setOrderActionError("");
@@ -446,9 +445,21 @@ export default function AccountPage() {
                     className="h-10 w-full rounded-lg border border-cream-300 px-3 text-sm focus:border-saffron-400 focus:outline-none"
                   />
                   {lookingUpPincode ? (
-                    <p className="text-xs text-ink-500">Looking up city and state…</p>
+                    <p className="text-xs text-ink-500">Looking up area…</p>
                   ) : null}
-                  {addressMessage ? null : null}
+                  {addressMessage ? (
+                    <p
+                      className={
+                        addressMessageTone === "error"
+                          ? "text-xs font-medium text-maroon-700"
+                          : addressMessageTone === "success"
+                            ? "text-xs font-medium text-leaf-600"
+                            : "text-xs text-ink-500"
+                      }
+                    >
+                      {addressMessage}
+                    </p>
+                  ) : null}
 
                   <div className="flex gap-2">
                     <button
