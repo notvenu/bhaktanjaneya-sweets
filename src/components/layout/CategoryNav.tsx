@@ -22,6 +22,7 @@ export async function CategoryNav() {
           {/* Shop All — always first */}
           <Link
             href="/shop"
+            aria-label="Shop All"
             className="group flex w-[76px] shrink-0 snap-start flex-col items-center sm:w-[92px]"
           >
             <div className="flex h-[76px] w-[76px] items-center justify-center rounded-full border border-maroon-800/15 bg-gradient-to-br from-maroon-800 to-maroon-900 text-saffron-300 shadow-sm transition-transform duration-200 group-hover:scale-[1.03] sm:h-[92px] sm:w-[92px]">

@@ -81,12 +81,15 @@ export async function getLiveGoogleReviews() {
   try {
     const url = `https://maps.googleapis.com/maps/api/place/details/json?place_id=${placeId}&fields=reviews,rating,user_ratings_total&key=${apiKey}`;
     const res = await fetch(url, {
-      next: { revalidate: 86400 }, // Cache reviews server-side for 24 hours
+      next: { revalidate: 0 }, // Temporarily disable cache to force fresh calls during configuration testing
     });
     
     const data = await res.json();
     if (data.status !== "OK" || !data.result) {
-      console.warn("Google Places API returned status:", data.status);
+      console.warn(
+        `Google Places API returned status: ${data.status}.` +
+        (data.error_message ? ` Error Message: ${data.error_message}` : "")
+      );
       return {
         reviews: googleReviews,
         ratingSummary: googleRatingSummary,

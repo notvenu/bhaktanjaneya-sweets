@@ -4,7 +4,7 @@ import { useCallback, useEffect, useState } from "react";
 import useEmblaCarousel from "embla-carousel-react";
 import Link from "next/link";
 import Image from "next/image";
-import { ArrowRight, Pause, Play } from "lucide-react";
+import { ArrowRight } from "lucide-react";
 import { Container } from "@/components/ui/Container";
 import { cn } from "@/lib/utils";
 
@@ -41,7 +41,7 @@ const slides = [
 export function Hero() {
   const [emblaRef, emblaApi] = useEmblaCarousel({ loop: true });
   const [selected, setSelected] = useState(0);
-  const [paused, setPaused] = useState(false);
+
   const [reducedMotion, setReducedMotion] = useState(false);
 
   useEffect(() => {
@@ -65,10 +65,11 @@ export function Hero() {
   }, [emblaApi]);
 
   useEffect(() => {
-    if (!emblaApi || paused || reducedMotion) return;
+    if (!emblaApi || reducedMotion) return;
     const id = setInterval(() => emblaApi.scrollNext(), 5500);
     return () => clearInterval(id);
-  }, [emblaApi, paused, reducedMotion]);
+  }, [emblaApi, reducedMotion]);
+
 
   return (
     <section className="bg-cream-100 pb-2 pt-4 sm:pt-6">
@@ -149,17 +150,7 @@ export function Hero() {
               )}
             />
           ))}
-          {!reducedMotion && (
-            <button
-              type="button"
-              onClick={() => setPaused((p) => !p)}
-              aria-label={paused ? "Play slideshow" : "Pause slideshow"}
-              aria-pressed={paused}
-              className="ml-2 flex h-6 w-6 items-center justify-center rounded-full text-maroon-800/70 transition-colors hover:bg-maroon-800/5 hover:text-maroon-800"
-            >
-              {paused ? <Play size={13} /> : <Pause size={13} />}
-            </button>
-          )}
+          {/* pause/play control removed (keep autoplay) */}
         </div>
       </Container>
     </section>
