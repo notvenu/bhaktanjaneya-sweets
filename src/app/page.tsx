@@ -7,12 +7,18 @@ import { InstagramReels } from "@/components/home/InstagramReels";
 import { BlogTeasers } from "@/components/home/BlogTeasers";
 import { NewsletterCTA } from "@/components/home/NewsletterCTA";
 import { getProducts } from "@/lib/api/products";
+import { getLiveGoogleReviews } from "@/lib/google-reviews";
+import { getLiveInstagramReels } from "@/lib/instagram-reels";
 
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
 
 export default async function HomePage() {
-  const products = await getProducts();
+  const [products, liveReviewsData, liveReels] = await Promise.all([
+    getProducts(),
+    getLiveGoogleReviews(),
+    getLiveInstagramReels(),
+  ]);
 
   const topPicks = products.filter((p) => p.tags.includes("top-pick"));
   const bestSellers = products.filter((p) => p.tags.includes("best-seller"));
@@ -34,11 +40,15 @@ export default async function HomePage() {
         viewAllHref="/shop?tag=best-seller"
         products={bestSellers.length ? bestSellers : products.slice(0, 6)}
       />
-      <Testimonials />
-      <InstagramReels />
+      <Testimonials
+        reviews={liveReviewsData.reviews}
+        ratingSummary={liveReviewsData.ratingSummary}
+      />
+      <InstagramReels reels={liveReels} />
       <BlogTeasers />
       <NewsletterCTA />
     </>
   );
 }
+
 

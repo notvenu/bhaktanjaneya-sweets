@@ -42,4 +42,47 @@ export const instagramReels: InstagramReel[] = [
   },
 ];
 
+/**
+ * Fetches live reels/posts from the Instagram Basic Display API server-side.
+ * Falls back to local generated cover images if the access token is not configured.
+ */
+export async function getLiveInstagramReels() {
+  const token = process.env.INSTAGRAM_ACCESS_TOKEN;
+
+  if (!token) {
+    return instagramReels;
+  }
+
+  try {
+    const url = `https://graph.instagram.com/me/media?fields=id,caption,media_type,media_url,permalink,thumbnail_url,timestamp&limit=12&access_token=${token}`;
+    const res = await fetch(url, {
+      next: { revalidate: 3600 }, // Cache Instagram reels server-side for 1 hour
+    });
+    
+    const data = await res.json();
+    if (!data.data) {
+      console.warn("Instagram API returned no media data:", data);
+      return instagramReels;
+    }
+
+    // Filter to only show video/reel posts and map them
+    const mappedReels = data.data
+      .filter((item: any) => item.media_type === "VIDEO" || item.media_type === "CAROUSEL_ALBUM")
+      .map((item: any) => ({
+        id: item.id,
+        thumbnail: item.thumbnail_url || item.media_url,
+        caption: item.caption || "",
+        likes: "View", // Basic Display API has restricted permissions and doesn't return count directly
+        views: "Reel",
+        link: item.permalink,
+      }));
+
+    return mappedReels.length ? mappedReels : instagramReels;
+  } catch (error) {
+    console.error("Error fetching Instagram reels:", error);
+    return instagramReels;
+  }
+}
+
+
 

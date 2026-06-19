@@ -2,7 +2,7 @@ import Image from "next/image";
 import { Heart, Play, ExternalLink } from "lucide-react";
 import { Container } from "@/components/ui/Container";
 import { SectionHeading } from "@/components/ui/SectionHeading";
-import { instagramReels } from "@/lib/instagram-reels";
+import { InstagramReel } from "@/lib/instagram-reels";
 
 function InstagramIcon({ className, size = 24 }: { className?: string; size?: number }) {
   return (
@@ -25,8 +25,12 @@ function InstagramIcon({ className, size = 24 }: { className?: string; size?: nu
   );
 }
 
-export function InstagramReels() {
-  if (instagramReels.length === 0) return null;
+interface InstagramReelsProps {
+  reels: InstagramReel[];
+}
+
+export function InstagramReels({ reels }: InstagramReelsProps) {
+  if (!reels || reels.length === 0) return null;
 
   const instagramUrl = "https://www.instagram.com/bhaktanjaneyasweets.in/reels/";
 
@@ -72,13 +76,13 @@ export function InstagramReels() {
       <div className="marquee-group relative mt-7 overflow-hidden [mask-image:linear-gradient(to_right,transparent,black_4%,black_96%,transparent)]">
         <ul
           className="flex w-max animate-marquee"
-          style={{ ["--marquee-duration" as string]: `${Math.max(24, instagramReels.length * 10)}s` }}
+          style={{ ["--marquee-duration" as string]: `${Math.max(24, reels.length * 10)}s` }}
         >
-          {[...instagramReels, ...instagramReels].map((r, idx) => (
+          {[...reels, ...reels].map((r, idx) => (
             <li
               key={`${r.id}-${idx}`}
               className="mr-5 w-[240px] shrink-0 sm:w-[280px]"
-              aria-hidden={idx >= instagramReels.length}
+              aria-hidden={idx >= reels.length}
             >
               <a
                 href={r.link}
@@ -142,5 +146,6 @@ export function InstagramReels() {
     </section>
   );
 }
+
 
 

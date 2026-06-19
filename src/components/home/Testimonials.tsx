@@ -2,7 +2,7 @@ import { Star, ExternalLink } from "lucide-react";
 import { Container } from "@/components/ui/Container";
 import { SectionHeading } from "@/components/ui/SectionHeading";
 import { config } from "@/lib/config";
-import { googleReviews, googleRatingSummary } from "@/lib/google-reviews";
+import { GoogleReview } from "@/lib/google-reviews";
 
 /** Google "G" logo — official four-colour mark, inline so it needs no asset. */
 function GoogleG({ className }: { className?: string }) {
@@ -28,8 +28,16 @@ function GoogleG({ className }: { className?: string }) {
   );
 }
 
-export function Testimonials() {
-  if (googleReviews.length === 0) return null;
+interface TestimonialsProps {
+  reviews: GoogleReview[];
+  ratingSummary: {
+    average: number;
+    count: number;
+  };
+}
+
+export function Testimonials({ reviews, ratingSummary }: TestimonialsProps) {
+  if (!reviews || reviews.length === 0) return null;
 
   return (
     <section className="py-14">
@@ -46,7 +54,7 @@ export function Testimonials() {
             <div>
               <div className="flex items-center gap-1.5">
                 <span className="text-xl font-bold text-maroon-900">
-                  {googleRatingSummary.average.toFixed(1)}
+                  {ratingSummary.average.toFixed(1)}
                 </span>
                 <span className="flex gap-0.5 text-saffron-500">
                   {Array.from({ length: 5 }).map((_, i) => (
@@ -54,7 +62,7 @@ export function Testimonials() {
                       key={i}
                       size={15}
                       className={
-                        i < Math.round(googleRatingSummary.average)
+                        i < Math.round(ratingSummary.average)
                           ? "fill-saffron-500"
                           : "text-cream-300"
                       }
@@ -63,8 +71,8 @@ export function Testimonials() {
                 </span>
               </div>
               <p className="text-xs text-ink-500">
-                Based on {googleRatingSummary.count} Google review
-                {googleRatingSummary.count !== 1 ? "s" : ""}
+                Based on {ratingSummary.count} Google review
+                {ratingSummary.count !== 1 ? "s" : ""}
               </p>
             </div>
           </div>
@@ -86,13 +94,13 @@ export function Testimonials() {
       <div className="marquee-group relative mt-7 overflow-hidden [mask-image:linear-gradient(to_right,transparent,black_4%,black_96%,transparent)]">
         <ul
           className="flex w-max animate-marquee"
-          style={{ ["--marquee-duration" as string]: `${Math.max(24, googleReviews.length * 9)}s` }}
+          style={{ ["--marquee-duration" as string]: `${Math.max(24, reviews.length * 9)}s` }}
         >
-          {[...googleReviews, ...googleReviews].map((r, idx) => (
+          {[...reviews, ...reviews].map((r, idx) => (
             <li
               key={`${r.author}-${idx}`}
               className="mr-5 w-[280px] shrink-0 sm:w-[330px]"
-              aria-hidden={idx >= googleReviews.length}
+              aria-hidden={idx >= reviews.length}
             >
               <figure className="flex h-full flex-col rounded-2xl border border-cream-200 bg-white p-6 shadow-soft">
                 <div className="flex items-center justify-between">
@@ -135,5 +143,6 @@ export function Testimonials() {
     </section>
   );
 }
+
 
 

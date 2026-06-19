@@ -62,3 +62,58 @@ export const googleRatingSummary = {
   average: 4.4,
   count: 142,
 };
+
+/**
+ * Fetches live reviews from the Google Places API server-side.
+ * Falls back to hand-curated placeholders if API keys are not configured.
+ */
+export async function getLiveGoogleReviews() {
+  const placeId = process.env.GOOGLE_PLACE_ID;
+  const apiKey = process.env.GOOGLE_MAPS_API_KEY;
+
+  if (!placeId || !apiKey) {
+    return {
+      reviews: googleReviews,
+      ratingSummary: googleRatingSummary,
+    };
+  }
+
+  try {
+    const url = `https://maps.googleapis.com/maps/api/place/details/json?place_id=${placeId}&fields=reviews,rating,user_ratings_total&key=${apiKey}`;
+    const res = await fetch(url, {
+      next: { revalidate: 86400 }, // Cache reviews server-side for 24 hours
+    });
+    
+    const data = await res.json();
+    if (data.status !== "OK" || !data.result) {
+      console.warn("Google Places API returned status:", data.status);
+      return {
+        reviews: googleReviews,
+        ratingSummary: googleRatingSummary,
+      };
+    }
+
+    const mappedReviews = (data.result.reviews || []).map((r: any) => ({
+      author: r.author_name,
+      rating: r.rating,
+      text: r.text,
+      relativeTime: r.relative_time_description,
+      avatar: r.profile_photo_url,
+    }));
+
+    return {
+      reviews: mappedReviews.length ? mappedReviews : googleReviews,
+      ratingSummary: {
+        average: data.result.rating || googleRatingSummary.average,
+        count: data.result.user_ratings_total || googleRatingSummary.count,
+      },
+    };
+  } catch (error) {
+    console.error("Error fetching Google reviews:", error);
+    return {
+      reviews: googleReviews,
+      ratingSummary: googleRatingSummary,
+    };
+  }
+}
+
