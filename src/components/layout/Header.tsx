@@ -92,6 +92,7 @@ export function Header() {
   }
 
 
+
   return (
     <Fragment>
     <header className="sticky top-0 z-40 border-b border-cream-300/60 bg-cream-50/95 backdrop-blur supports-[backdrop-filter]:bg-cream-50/80">
@@ -142,6 +143,7 @@ export function Header() {
 
           {mobileSearchOpen && (
             <div className="absolute left-3 right-3 top-[3.25rem] z-50 rounded-2xl border border-cream-300 bg-cream-50/95 p-3 shadow-card lg:hidden">
+
               <form onSubmit={submitSearch} className="relative">
                 <Search
                   size={18}
@@ -370,7 +372,8 @@ export function Header() {
 
 
             <nav className="flex-1 overflow-y-auto p-2">
-              {navLinks.map((l) => (
+              {leadingLinks.concat(trailingLinks).map((l) => (
+
                 <Link
                   key={l.href + l.label}
                   href={l.href}

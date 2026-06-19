@@ -6,6 +6,8 @@ import type { Category, Product, Variant } from "@/lib/types";
 import { defaultProductImage } from "@/lib/images";
 import { uid, betterSlugify } from "@/lib/utils";
 import { Field, inputClass, Toggle, Modal, AdminButton } from "./ui";
+import { ProductImagesEditor } from "./ProductImagesEditor";
+
 
 const TAGS: { value: string; label: string }[] = [
   { value: "best-seller", label: "Best Seller" },
@@ -143,7 +145,6 @@ export function ProductEditor({
                   ...d,
                   name,
                   slug: isNew && !d.slug ? betterSlugify(name) : d.slug,
-
                 }));
               }}
               placeholder="Kaju Patisa"
@@ -292,52 +293,11 @@ export function ProductEditor({
         </div>
 
         {/* Images */}
-        <div>
-          <p className="mb-2 text-xs font-semibold text-ink-600">
-            Image URLs
-          </p>
-          <div className="space-y-2">
-            {draft.images.map((img, i) => (
-              <div key={i} className="flex items-center gap-2">
-                <input
-                  className={`${inputClass} flex-1`}
-                  value={img}
-                  onChange={(e) =>
-                    setDraft((d) => ({
-                      ...d,
-                      images: d.images.map((s, idx) =>
-                        idx === i ? e.target.value : s,
-                      ),
-                    }))
-                  }
-                  placeholder="/images/products/example.jpg or https://…"
-                />
-                <button
-                  type="button"
-                  aria-label="Remove image"
-                  onClick={() =>
-                    setDraft((d) => ({
-                      ...d,
-                      images: d.images.filter((_, idx) => idx !== i),
-                    }))
-                  }
-                  className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg text-ink-400 hover:bg-maroon-700/5 hover:text-maroon-700"
-                >
-                  <Trash2 size={16} />
-                </button>
-              </div>
-            ))}
-          </div>
-          <button
-            type="button"
-            onClick={() =>
-              setDraft((d) => ({ ...d, images: [...d.images, ""] }))
-            }
-            className="mt-2 inline-flex items-center gap-1.5 text-sm font-medium text-saffron-600 hover:text-saffron-500"
-          >
-            <Plus size={15} /> Add image
-          </button>
-        </div>
+        <ProductImagesEditor
+          images={draft.images}
+          onChange={(images) => setDraft((d) => ({ ...d, images }))}
+        />
+
 
         {/* Tags + badges */}
         <div className="grid gap-4 sm:grid-cols-2">
