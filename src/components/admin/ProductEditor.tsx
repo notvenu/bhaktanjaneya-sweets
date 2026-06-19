@@ -33,8 +33,6 @@ function blankProduct(category: string): Draft {
     reviewCount: 0,
     active: true,
     badges: [],
-    taxRate: 0,
-    extraCharges: 0,
   };
 }
 
@@ -86,8 +84,16 @@ export function ProductEditor({
     const name = draft.name.trim();
     if (!name) return setError("Product name is required.");
     const variants = draft.variants
-      .map((v) => ({ ...v, label: v.label.trim() }))
-      .filter((v) => v.label && v.price > 0);
+      .map((v) => {
+        const pieces = Number(v.pieces);
+        return {
+          ...v,
+          label: (v.label ?? "").trim(),
+          pieces: Number.isFinite(pieces) && pieces > 0 ? pieces : undefined,
+        };
+      })
+      .filter((v) => v.label && Number(v.price) > 0);
+
     if (variants.length === 0)
       return setError("Add at least one variant with a label and price.");
 
@@ -189,16 +195,36 @@ export function ProductEditor({
         {/* Variants */}
         <div>
           <p className="mb-2 text-xs font-semibold text-ink-600">
-            Variants (size, price, stock)
+            Variants (size, pieces, price, stock)
+          </p>
+          <p className="mb-2 text-xs text-ink-400">
+            Set <span className="font-medium">Pcs</span> only for packs that
+            contain a fixed number of items (e.g. Bobbatlu 250 g = 5 pcs). It
+            shows as &ldquo;250 g · 5 pcs&rdquo;. Leave blank for items sold by
+            weight.
           </p>
           <div className="space-y-2">
             {draft.variants.map((v, i) => (
-              <div key={v.id} className="flex items-center gap-2">
+              <div key={v.id} className="flex flex-wrap items-center gap-2">
                 <input
-                  className={`${inputClass} min-w-0 flex-1`}
+                  className={`${inputClass} min-w-0 flex-1 basis-32`}
                   value={v.label}
                   onChange={(e) => setVariant(i, { label: e.target.value })}
                   placeholder="250 g"
+                />
+                <input
+                  className={`${inputClass} shrink-0 basis-20`}
+                  type="number"
+                  min={0}
+                  value={v.pieces ?? ""}
+                  onChange={(e) =>
+                    setVariant(i, {
+                      pieces: e.target.value
+                        ? Number(e.target.value)
+                        : undefined,
+                    })
+                  }
+                  placeholder="Pcs"
                 />
                 <input
                   className={`${inputClass} shrink-0 basis-24`}
@@ -348,31 +374,6 @@ export function ProductEditor({
                 )
               }
               placeholder="Pure Ghee, 100% Veg"
-            />
-          </Field>
-        </div>
-
-        <div className="grid gap-4 sm:grid-cols-2">
-          <Field label="GST rate (%)" hint="Applied to the selling price at checkout, e.g. 5 for 5%.">
-            <input
-              className={inputClass}
-              type="number"
-              min={0}
-              max={100}
-              step={0.1}
-              value={draft.taxRate ?? 0}
-              onChange={(e) => set("taxRate", Number(e.target.value))}
-              placeholder="0"
-            />
-          </Field>
-          <Field label="Extra charges (₹)" hint="Flat amount per unit (packaging, handling, etc.).">
-            <input
-              className={inputClass}
-              type="number"
-              min={0}
-              value={draft.extraCharges ?? 0}
-              onChange={(e) => set("extraCharges", Number(e.target.value))}
-              placeholder="0"
             />
           </Field>
         </div>

@@ -32,6 +32,7 @@ interface Variant {
   price: number;     // selling price, INR rupees
   mrp?: number;      // optional original price for strike-through
   stock: number;     // units in stock
+  pieces?: number;   // optional piece count for weight packs (e.g. 250 g = 5 pcs)
 }
 
 interface Product {

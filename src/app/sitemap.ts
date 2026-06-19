@@ -2,7 +2,7 @@ import type { MetadataRoute } from "next";
 import { config } from "@/lib/config";
 import { getProducts } from "@/lib/api/products";
 import { getCategories } from "@/lib/api/categories";
-import { blogPosts } from "@/lib/mock/blog";
+import { getPosts } from "@/lib/api/posts";
 import { policySlugs } from "@/lib/content";
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
@@ -25,9 +25,10 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     priority: path === "" ? 1 : 0.7,
   }));
 
-  const [products, categories] = await Promise.all([
+  const [products, categories, posts] = await Promise.all([
     getProducts(),
     getCategories(),
+    getPosts(),
   ]);
 
   const productRoutes = products.map((p) => ({
@@ -44,9 +45,9 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     priority: 0.6,
   }));
 
-  const blogRoutes = blogPosts.map((b) => ({
+  const blogRoutes = posts.map((b) => ({
     url: `${base}/blog/${b.slug}`,
-    lastModified: new Date(b.date),
+    lastModified: b.date ? new Date(b.date) : now,
     changeFrequency: "monthly" as const,
     priority: 0.5,
   }));

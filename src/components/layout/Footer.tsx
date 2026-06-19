@@ -9,14 +9,7 @@ import {
   YoutubeIcon,
 } from "@/components/icons/BrandIcons";
 import { config } from "@/lib/config";
-
-const shopLinks = [
-  { href: "/shop", label: "Shop All" },
-  { href: "/collections/sweets", label: "Sweets" },
-  { href: "/collections/namkeen", label: "Namkeen" },
-  { href: "/shop?tag=best-seller", label: "Best Sellers" },
-  { href: "/bulk-orders", label: "Bulk & Gifting" },
-];
+import { getCategories } from "@/lib/api/categories";
 
 const companyLinks = [
   { href: "/about", label: "Our Story" },
@@ -63,7 +56,21 @@ function FooterColumn({
   );
 }
 
-export function Footer() {
+export async function Footer() {
+  let categories: { slug: string; name: string }[] = [];
+  try {
+    categories = await getCategories();
+  } catch {
+    categories = [];
+  }
+
+  const shopLinks = [
+    { href: "/shop", label: "Shop All" },
+    ...categories.map((c) => ({ href: `/collections/${c.slug}`, label: c.name })),
+    { href: "/shop?tag=best-seller", label: "Best Sellers" },
+    { href: "/bulk-orders", label: "Bulk & Gifting" },
+  ];
+
   return (
     <footer className="mt-8 bg-maroon-900 text-cream-50 sm:mt-10">
       <Container>

@@ -412,19 +412,8 @@ export default function AdminOrdersPage() {
                   <span>Discount</span>
                   <span>−{formatINR(viewing.discount)}</span>
                 </div>
-              ) : null}
-              {viewing.taxAmount ? (
-                <div className="flex justify-between text-ink-500">
-                  <span>GST</span>
-                  <span>{formatINR(viewing.taxAmount)}</span>
-                </div>
-              ) : null}
-              {viewing.extraChargesAmount ? (
-                <div className="flex justify-between text-ink-500">
-                  <span>Extra charges</span>
-                  <span>{formatINR(viewing.extraChargesAmount)}</span>
-                </div>
-              ) : null}
+              ) : null}
+
               <div className="flex justify-between text-ink-500">
                 <span>Shipping</span>
                 <span>

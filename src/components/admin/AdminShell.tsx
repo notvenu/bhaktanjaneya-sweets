@@ -9,6 +9,7 @@ import {
   BadgePercent,
   ShoppingBag,
   Users,
+  Newspaper,
   LogOut,
   ExternalLink,
   RefreshCw,
@@ -24,6 +25,7 @@ const NAV = [
   { href: "/admin/offers", label: "Offers", icon: BadgePercent },
   { href: "/admin/orders", label: "Orders", icon: ShoppingBag },
   { href: "/admin/customers", label: "Customers", icon: Users },
+  { href: "/admin/blog", label: "Blog", icon: Newspaper },
 ];
 
 export function AdminShell({ children }: { children: React.ReactNode }) {

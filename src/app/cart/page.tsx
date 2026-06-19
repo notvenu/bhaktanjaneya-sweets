@@ -175,25 +175,13 @@ export default function CartPage() {
     [items],
   );
 
-  const { taxAmount, extraChargesAmount } = useMemo(() => {
-    return items.reduce((acc, item) => {
-      // item.taxRate is % (e.g. 5), item.extraCharges is flat INR
-      const tax = Math.round((item.price * (item.taxRate || 0)) / 100) * item.quantity;
-      const extra = (item.extraCharges || 0) * item.quantity;
-      return {
-        taxAmount: acc.taxAmount + tax,
-        extraChargesAmount: acc.extraChargesAmount + extra
-      };
-    }, { taxAmount: 0, extraChargesAmount: 0 });
-  }, [items]);
-
   const discount = useMemo(() => discountFor(offer, subtotal), [offer, subtotal]);
   const freeShipping =
     subtotal >= config.freeShippingThreshold ||
     (offer?.type === "free_shipping" &&
       (!offer.minSubtotal || subtotal >= offer.minSubtotal));
   const shipping = freeShipping ? 0 : config.shippingFee;
-  const total = Math.max(0, subtotal - discount + shipping + taxAmount + extraChargesAmount);
+  const total = Math.max(0, subtotal - discount + shipping);
 
   function applyCode() {
     setCodeError("");
@@ -277,8 +265,6 @@ export default function CartPage() {
       subtotal,
       discount: discount || undefined,
       shipping,
-      taxAmount,
-      extraChargesAmount,
       total,
       channel: "online",
       paymentMethod: method,
@@ -309,9 +295,7 @@ export default function CartPage() {
     setPlacing(true);
     try {
       await saveCheckoutAddressIfNeeded();
-      const order = await createOrder(
-        buildOrder("cod", "cod"),
-      );
+      const order = await createOrder(buildOrder("cod", "cod"), offer?.code);
       clear();
       setPlaced({ id: order.id, method: "cod" });
     } catch (error) {
@@ -343,10 +327,10 @@ export default function CartPage() {
       const loaded = await loadRazorpayScript();
       if (!loaded) throw new Error("Could not load payment gateway. Please try again.");
 
-      const rzOrder = await createRazorpayOrder(total);
-      const pendingOrder = buildOrder("razorpay", "pending", {
-        razorpayOrderId: rzOrder.id,
-      });
+      // Create the order (pending) first so payment can be bound to it and
+      // marked paid server-side. The server recomputes the authoritative total.
+      const saved = await createOrder(buildOrder("razorpay", "pending"), offer?.code);
+      const rzOrder = await createRazorpayOrder(saved.total);
 
       openRazorpayCheckout({
         key: rzOrder.keyId,
@@ -367,17 +351,12 @@ export default function CartPage() {
               razorpay_order_id: response.razorpay_order_id,
               razorpay_payment_id: response.razorpay_payment_id,
               razorpay_signature: response.razorpay_signature,
+              orderId: saved.id,
             });
             if (!verified) throw new Error("Payment verification failed.");
 
-            const order = await createOrder({
-              ...pendingOrder,
-              paymentStatus: "paid",
-              razorpayOrderId: response.razorpay_order_id,
-              razorpayPaymentId: response.razorpay_payment_id,
-            });
             clear();
-            setPlaced({ id: order.id, method: "razorpay" });
+            setPlaced({ id: saved.id, method: "razorpay" });
           } catch (error) {
             setCheckoutError(
               getErrorDetails(error, "Payment succeeded but order could not be saved"),
@@ -858,18 +837,6 @@ export default function CartPage() {
                   <div className="flex justify-between text-leaf-600">
                     <dt>Discount</dt>
                     <dd className="font-medium">-{formatINR(discount)}</dd>
-                  </div>
-                )}
-                {taxAmount > 0 && (
-                  <div className="flex justify-between">
-                    <dt className="text-ink-600">GST</dt>
-                    <dd className="font-medium text-maroon-900">{formatINR(taxAmount)}</dd>
-                  </div>
-                )}
-                {extraChargesAmount > 0 && (
-                  <div className="flex justify-between">
-                    <dt className="text-ink-600">Extra Charges</dt>
-                    <dd className="font-medium text-maroon-900">{formatINR(extraChargesAmount)}</dd>
                   </div>
                 )}
                 <div className="flex justify-between">

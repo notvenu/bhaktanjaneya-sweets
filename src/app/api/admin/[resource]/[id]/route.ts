@@ -8,14 +8,25 @@ import {
   offerToRow,
   orderFromRow,
   orderToRow,
+  postFromRow,
+  postToRow,
   productFromRow,
   productToRow,
 } from "@/lib/supabase/mappers";
 
-type Resource = "products" | "categories" | "offers" | "orders";
+type Resource = "products" | "categories" | "offers" | "orders" | "posts";
 
-function patchTable(resource: Resource) {
-  return resource;
+/** Allowlist — prevents the `[resource]` segment from targeting arbitrary tables. */
+const ALLOWED_RESOURCES: readonly Resource[] = [
+  "products",
+  "categories",
+  "offers",
+  "orders",
+  "posts",
+];
+
+function isAllowed(resource: string): resource is Resource {
+  return (ALLOWED_RESOURCES as readonly string[]).includes(resource);
 }
 
 function payloadFor(resource: Resource, body: Record<string, unknown>) {
@@ -23,6 +34,7 @@ function payloadFor(resource: Resource, body: Record<string, unknown>) {
   if (resource === "categories") return categoryToRow(body as never);
   if (resource === "offers") return offerToRow(body as never);
   if (resource === "orders") return orderToRow(body as never);
+  if (resource === "posts") return postToRow(body as never);
   return body;
 }
 
@@ -31,6 +43,7 @@ function formatRow(resource: Resource, row: Record<string, unknown>) {
   if (resource === "categories") return categoryFromRow(row);
   if (resource === "offers") return offerFromRow(row);
   if (resource === "orders") return orderFromRow(row);
+  if (resource === "posts") return postFromRow(row);
   return row;
 }
 
@@ -57,7 +70,7 @@ async function updateResource(
 
   const payload = payloadFor(resource, body);
   const { data, error } = await supabaseAdmin
-    .from(patchTable(resource))
+    .from(resource)
     .update(payload)
     .eq("id", id)
     .select("*")
@@ -74,7 +87,8 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<Record
   }
   const body = (await req.json()) as Record<string, unknown>;
   const p = (await params) as Record<string, string>;
-  return updateResource(p.resource as Resource, p.id, body);
+  if (!isAllowed(p.resource)) return NextResponse.json({ error: "Not found" }, { status: 404 });
+  return updateResource(p.resource, p.id, body);
 }
 
 export async function PATCH(req: NextRequest, context: { params: Promise<Record<string, string>> | Record<string, string> }) {
@@ -86,7 +100,8 @@ export async function PATCH(req: NextRequest, context: { params: Promise<Record<
 
   const body = (await req.json()) as Record<string, unknown>;
   const p = (await context.params) as Record<string, string>;
-  return updateResource(p.resource as Resource, p.id, body);
+  if (!isAllowed(p.resource)) return NextResponse.json({ error: "Not found" }, { status: 404 });
+  return updateResource(p.resource, p.id, body);
 }
 
 export async function DELETE(req: NextRequest, { params }: { params: Promise<Record<string, string>> | Record<string, string> }) {
@@ -96,7 +111,8 @@ export async function DELETE(req: NextRequest, { params }: { params: Promise<Rec
     return NextResponse.json({ error: error instanceof Error ? error.message : "Unauthorized" }, { status: 401 });
   }
   const p = (await params) as Record<string, string>;
-  const { error } = await supabaseAdmin.from(patchTable(p.resource as Resource)).delete().eq("id", p.id);
+  if (!isAllowed(p.resource)) return NextResponse.json({ error: "Not found" }, { status: 404 });
+  const { error } = await supabaseAdmin.from(p.resource).delete().eq("id", p.id);
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
   return new NextResponse(null, { status: 204 });
 }

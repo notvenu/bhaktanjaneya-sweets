@@ -13,6 +13,12 @@ export interface Variant {
   mrp?: number;
   /** Units in stock. */
   stock: number;
+  /**
+   * Optional piece count for packs sold by weight that also contain a fixed
+   * number of items (e.g. Bobbatlu "250 g" = 5 pcs). Shown next to the label
+   * as "250 g · 5 pcs". Omit for products measured purely by weight.
+   */
+  pieces?: number;
 }
 
 export interface Product {
@@ -33,10 +39,6 @@ export interface Product {
   active: boolean;
   /** Short trust badges, e.g. "100% Pure Veg", "Pure Ghee". */
   badges?: string[];
-  /** GST percentage applied to variant prices, e.g. 5 for 5%. */
-  taxRate?: number;
-  /** Flat extra charge in INR per unit (packaging, handling, etc.). */
-  extraCharges?: number;
 }
 
 export interface Category {
@@ -74,8 +76,6 @@ export interface CartItem {
   variantLabel: string;
   price: number;
   quantity: number;
-  taxRate?: number;
-  extraCharges?: number;
 }
 
 export interface Customer {
@@ -132,8 +132,6 @@ export interface Order {
   subtotal: number;
   discount?: number;
   shipping?: number;
-  taxAmount?: number;
-  extraChargesAmount?: number;
   total: number;
   channel: OrderChannel;
   paymentMethod?: PaymentMethod;
@@ -144,6 +142,26 @@ export interface Order {
   deliveryTrackingId?: string;
   status: OrderStatus;
   createdAt: string;
+}
+
+export interface Post {
+  id: string;
+  /** URL key, unique. */
+  slug: string;
+  title: string;
+  /** Short summary shown on cards and meta description. */
+  excerpt: string;
+  author: string;
+  /** Cover image URL. */
+  cover: string;
+  /** ISO date string (YYYY-MM-DD). */
+  date: string;
+  /** Estimated read time in minutes. */
+  readMinutes: number;
+  /** Body paragraphs, in order. */
+  content: string[];
+  /** Hidden from the storefront when false. */
+  active: boolean;
 }
 
 export interface AdminUser {

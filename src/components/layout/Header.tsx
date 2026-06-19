@@ -12,20 +12,24 @@ import {
   ShoppingBag,
   User,
   MessageCircle,
+  ChevronDown,
 } from "lucide-react";
 import { Container } from "@/components/ui/Container";
 import { useCart } from "@/context/CartContext";
 import { useAuth } from "@/context/AuthContext";
+import { apiGet } from "@/lib/api/client";
 import { waLink } from "@/lib/whatsapp";
 import { config } from "@/lib/config";
 import { cn } from "@/lib/utils";
+import type { Category } from "@/lib/types";
 
-const navLinks = [
+const leadingLinks = [
   { href: "/", label: "Home" },
   { href: "/find-my-order", label: "Find my order" },
   { href: "/shop", label: "Shop All" },
-  { href: "/collections/sweets", label: "Sweets" },
-  { href: "/collections/namkeen", label: "Namkeen" },
+];
+
+const trailingLinks = [
   { href: "/shop?tag=best-seller", label: "Best Sellers" },
   { href: "/bulk-orders", label: "Bulk Orders" },
   { href: "/about", label: "About" },
@@ -40,6 +44,22 @@ export function Header() {
   const [accountMenuOpen, setAccountMenuOpen] = useState(false);
   const [mobileSearchOpen, setMobileSearchOpen] = useState(false);
   const [q, setQ] = useState("");
+  const [categories, setCategories] = useState<Category[]>([]);
+  const [categoriesOpen, setCategoriesOpen] = useState(false);
+
+  useEffect(() => {
+    let active = true;
+    apiGet<Category[]>("/categories")
+      .then((cats) => {
+        if (active) setCategories(cats);
+      })
+      .catch(() => {
+        if (active) setCategories([]);
+      });
+    return () => {
+      active = false;
+    };
+  }, []);
 
   function lockBodyScroll(locked: boolean) {
     // Use class-based locking to avoid getting stuck when route changes.
@@ -259,11 +279,62 @@ export function Header() {
 
         {/* Desktop nav */}
         <nav className="hidden h-12 items-center gap-7 border-t border-cream-300/50 text-sm font-medium text-maroon-800 lg:flex">
-          {navLinks.map((l) => (
+          {leadingLinks.map((l) => (
             <Link
               key={l.href + l.label}
               href={l.href}
-              className="relative transition-colors hover:text-saffron-600"
+              className="relative whitespace-nowrap transition-colors hover:text-saffron-600"
+            >
+              {l.label}
+            </Link>
+          ))}
+
+          {categories.length > 0 && (
+            <div
+              className="relative"
+              onMouseEnter={() => setCategoriesOpen(true)}
+              onMouseLeave={() => setCategoriesOpen(false)}
+            >
+              <button
+                type="button"
+                aria-haspopup="menu"
+                aria-expanded={categoriesOpen}
+                onClick={() => setCategoriesOpen((v) => !v)}
+                className="inline-flex items-center gap-1 whitespace-nowrap transition-colors hover:text-saffron-600"
+              >
+                Categories
+                <ChevronDown
+                  size={15}
+                  className={cn("transition-transform", categoriesOpen && "rotate-180")}
+                />
+              </button>
+
+              {categoriesOpen && (
+                <div
+                  role="menu"
+                  className="absolute left-0 top-full z-50 mt-1 w-60 max-h-[70vh] overflow-y-auto rounded-xl border border-cream-300 bg-cream-50 p-1.5 shadow-card"
+                >
+                  {categories.map((c) => (
+                    <Link
+                      key={c.id}
+                      href={`/collections/${c.slug}`}
+                      role="menuitem"
+                      onClick={() => setCategoriesOpen(false)}
+                      className="block rounded-lg px-3 py-2 text-sm font-medium text-maroon-900 transition-colors hover:bg-maroon-800/5 hover:text-saffron-600"
+                    >
+                      {c.name}
+                    </Link>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
+
+          {trailingLinks.map((l) => (
+            <Link
+              key={l.href + l.label}
+              href={l.href}
+              className="relative whitespace-nowrap transition-colors hover:text-saffron-600"
             >
               {l.label}
             </Link>

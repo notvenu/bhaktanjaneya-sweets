@@ -13,6 +13,7 @@ import {
   inStock,
   bestDiscountPct,
   toCartItem,
+  variantLabel,
 } from "@/lib/product";
 import { getProductImage } from "@/lib/images";
 import { waLink, productEnquiryMessage } from "@/lib/whatsapp";
@@ -39,7 +40,7 @@ export function ProductCard({
   const { min, hasRange } = priceRange(product);
   const available = inStock(product);
   const discount = bestDiscountPct(product);
-  const featureTag = product.tags.find((t) => TAG_LABELS[t]);
+  const featureTag = (product.tags ?? []).find((t) => TAG_LABELS[t]);
   const href = `/product/${product.slug}`;
 
   function quickAdd() {
@@ -141,7 +142,11 @@ export function ProductCard({
 
           <a
             href={waLink(
-              productEnquiryMessage(product.name, variant.label, variant.price),
+              productEnquiryMessage(
+                product.name,
+                variantLabel(variant),
+                variant.price,
+              ),
             )}
             target="_blank"
             rel="noopener noreferrer"

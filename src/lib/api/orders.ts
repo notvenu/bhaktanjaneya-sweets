@@ -1,8 +1,9 @@
 import type { Order, OrderStatus } from "@/lib/types";
 import { apiPatch, apiPost } from "./client";
 
-export async function createOrder(order: Order): Promise<Order> {
-  return apiPost<Order>("/orders", order);
+export async function createOrder(order: Order, couponCode?: string): Promise<Order> {
+  // couponCode is re-validated server-side; the server ignores client prices.
+  return apiPost<Order>("/orders", couponCode ? { ...order, couponCode } : order);
 }
 
 export async function cancelOrder(orderId: string): Promise<Order> {

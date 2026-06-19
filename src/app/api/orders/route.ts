@@ -1,15 +1,102 @@
 import { NextResponse } from "next/server";
 import { supabaseAdmin } from "@/lib/supabase/server";
 import { requireRole } from "@/lib/server/auth";
-import { orderFromRow, orderToRow } from "@/lib/supabase/mappers";
+import { offerFromRow, orderFromRow, orderToRow, productFromRow } from "@/lib/supabase/mappers";
 import { isServiceableCity } from "@/lib/constants/serviceable-areas";
-import type { Order, ShippingAddress } from "@/lib/types";
+import { variantLabel } from "@/lib/product";
+import { config } from "@/lib/config";
+import type { Offer, Order, OrderItem, Product, ShippingAddress } from "@/lib/types";
 
-function toDbOrder(body: Record<string, unknown>) {
-  return orderToRow({
-    ...(body as Partial<Order>),
-    createdAt: new Date().toISOString(),
-  });
+/** Look up + validate a coupon against the offers table (never trust the client). */
+async function validatedOffer(code: unknown, subtotal: number): Promise<Offer | null> {
+  if (typeof code !== "string" || !code.trim()) return null;
+  const { data } = await supabaseAdmin
+    .from("offers")
+    .select("*")
+    .ilike("code", code.trim())
+    .eq("active", true)
+    .limit(1)
+    .maybeSingle();
+  if (!data) return null;
+  const offer = offerFromRow(data);
+  const now = new Date();
+  if (offer.startsAt && new Date(offer.startsAt) > now) return null;
+  if (offer.endsAt && new Date(offer.endsAt) < now) return null;
+  if (offer.minSubtotal && subtotal < offer.minSubtotal) return null;
+  return offer;
+}
+
+interface PricedOrder {
+  items: OrderItem[];
+  subtotal: number;
+  shipping: number;
+  discount: number;
+  total: number;
+}
+
+/**
+ * Recompute every monetary field from authoritative DB prices. The client is
+ * never trusted for prices or totals — it can only choose products, variants,
+ * and quantities. Returns an error string if any line can't be priced.
+ */
+async function priceOrder(rawItems: unknown, couponCode: unknown): Promise<PricedOrder | string> {
+  if (!Array.isArray(rawItems) || rawItems.length === 0) return "Your cart is empty.";
+
+  const ids = [...new Set(rawItems.map((it) => (it as { productId?: string })?.productId).filter(Boolean))] as string[];
+  const { data, error } = await supabaseAdmin.from("products").select("*").in("id", ids);
+  if (error) return error.message;
+
+  const byId = new Map<string, Product>();
+  for (const row of data ?? []) {
+    const product = productFromRow(row as Record<string, unknown>);
+    byId.set(product.id, product);
+  }
+
+  const items: OrderItem[] = [];
+  let subtotal = 0;
+
+  for (const raw of rawItems) {
+    const it = raw as { productId?: string; variantLabel?: string; quantity?: unknown };
+    const product = it.productId ? byId.get(it.productId) : undefined;
+    if (!product || product.active === false) {
+      return "An item in your cart is no longer available. Please review your cart and try again.";
+    }
+    const variant =
+      product.variants.find((v) => variantLabel(v) === it.variantLabel) ??
+      product.variants.find((v) => v.label === it.variantLabel);
+    if (!variant) {
+      return `The selected size for ${product.name} is no longer available.`;
+    }
+
+    const quantity = Math.floor(Number(it.quantity));
+    if (!Number.isFinite(quantity) || quantity <= 0) return "Invalid item quantity.";
+
+    const price = variant.price;
+    subtotal += price * quantity;
+
+    items.push({
+      productId: product.id,
+      name: product.name,
+      variantLabel: variantLabel(variant),
+      price,
+      quantity,
+    });
+  }
+
+  // Discount comes ONLY from a server-validated coupon — never the client value.
+  const offer = await validatedOffer(couponCode, subtotal);
+  let discount = 0;
+  let freeShipping = subtotal >= config.freeShippingThreshold;
+  if (offer) {
+    if (offer.type === "percent") discount = Math.round((subtotal * offer.value) / 100);
+    else if (offer.type === "flat") discount = Math.min(subtotal, offer.value);
+    else if (offer.type === "free_shipping") freeShipping = true;
+  }
+  discount = Math.min(Math.max(0, discount), subtotal);
+  const shipping = freeShipping ? 0 : config.shippingFee;
+  const total = Math.max(0, subtotal - discount + shipping);
+
+  return { items, subtotal, shipping, discount, total };
 }
 
 function isValidAddress(address: unknown): address is ShippingAddress {
@@ -72,9 +159,39 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: "Payment method is required" }, { status: 400 });
   }
 
+  // Recompute money server-side; never trust client prices/totals.
+  const priced = await priceOrder(order.items, order.couponCode);
+  if (typeof priced === "string") {
+    return NextResponse.json({ error: priced }, { status: 400 });
+  }
+
+  // COD orders are unpaid-on-delivery; online orders stay pending until the
+  // Razorpay verification endpoint marks them paid. Never trust client status.
+  const paymentMethod = order.paymentMethod as Order["paymentMethod"];
+  const paymentStatus: Order["paymentStatus"] = paymentMethod === "cod" ? "cod" : "pending";
+
+  const safeOrder: Partial<Order> = {
+    customerPhone: String(order.customerPhone).replace(/\D/g, ""),
+    customerName: order.customerName.trim(),
+    customerEmail: order.customerEmail.trim(),
+    shippingAddress: order.shippingAddress,
+    notes: typeof order.notes === "string" ? order.notes.trim() || undefined : undefined,
+    items: priced.items,
+    subtotal: priced.subtotal,
+    discount: priced.discount || undefined,
+    shipping: priced.shipping,
+    total: priced.total,
+    channel: "online",
+    paymentMethod,
+    paymentStatus,
+    razorpayOrderId: typeof order.razorpayOrderId === "string" ? order.razorpayOrderId : undefined,
+    status: "new",
+    createdAt: new Date().toISOString(),
+  };
+
   const { data, error } = await supabaseAdmin
     .from("orders")
-    .insert(toDbOrder(order))
+    .insert(orderToRow(safeOrder))
     .select("*")
     .single();
 

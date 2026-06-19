@@ -13,12 +13,13 @@ export async function CategoryNav() {
   return (
     <section className="border-b border-cream-300/60 bg-cream-50 py-6 sm:py-8">
       <Container>
-        <div className="flex flex-wrap items-start justify-center gap-x-10 gap-y-6 sm:gap-x-14 md:gap-x-20">
+        {/* Horizontally scrollable on every screen — never wraps to a new row. */}
+        <div className="-mx-4 flex snap-x items-start gap-x-8 overflow-x-auto px-4 pb-2 sm:gap-x-12 md:justify-center md:gap-x-16 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
           {categories.map((category) => (
             <Link
               key={category.id}
               href={`/collections/${category.slug}`}
-              className="group flex w-[88px] flex-col items-center sm:w-[104px]"
+              className="group flex w-[88px] shrink-0 snap-start flex-col items-center sm:w-[104px]"
             >
               <div className="relative h-[88px] w-[88px] overflow-hidden rounded-full border border-maroon-800/15 bg-white shadow-sm transition-transform duration-200 group-hover:scale-[1.03] sm:h-[104px] sm:w-[104px]">
                 <Image

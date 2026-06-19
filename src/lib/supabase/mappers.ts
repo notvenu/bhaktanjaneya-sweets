@@ -1,4 +1,5 @@
-import type { Category, Customer, Offer, Order, Product } from "@/lib/types";
+import type { Category, Customer, Offer, Order, Post, Product, Variant } from "@/lib/types";
+import { betterSlugify } from "@/lib/utils";
 
 type Row = Record<string, unknown>;
 
@@ -6,30 +7,86 @@ function optionalStringArray(value: unknown): string[] {
   return Array.isArray(value) ? value.filter((item): item is string => typeof item === "string") : [];
 }
 
+/**
+ * Normalize a raw size/label string to a clean unit label.
+ *  "250grms" -> "250 g", "1000grms" -> "1 kg", "5pcs" -> "5 pieces".
+ * Anything it doesn't recognize is returned trimmed, unchanged.
+ */
+function normalizeUnitLabel(raw: string): string {
+  const trimmed = raw.trim();
+  const low = trimmed.toLowerCase().replace(/\s+/g, "");
+  const weight = low.match(/^(\d+)(grms|gms|gm|g|kg)$/);
+  if (weight) {
+    const n = Number(weight[1]);
+    const unit = weight[2];
+    if (unit === "kg") return `${n} kg`;
+    if (n >= 1000 && n % 1000 === 0) return `${n / 1000} kg`;
+    return `${n} g`;
+  }
+  const pieces = low.match(/^(\d+)(pieces|pcs|pc|piece)$/);
+  if (pieces) return `${Number(pieces[1])} pieces`;
+  return trimmed;
+}
+
+/**
+ * Reconcile the stored variant shape with the frontend `Variant` type.
+ * The catalog in Supabase stores `{ size, price, pieces }` with no `id`/`stock`,
+ * so we map `size` -> `label`, normalize units, derive a stable id, and default
+ * stock to available (stock isn't tracked in that data).
+ */
+function normalizeVariant(raw: unknown, index: number, slug: string): Variant {
+  const v = (raw && typeof raw === "object" ? raw : {}) as Record<string, unknown>;
+  const sourceLabel =
+    (typeof v.label === "string" && v.label) ||
+    (typeof v.size === "string" && v.size) ||
+    (v.size != null ? String(v.size) : "");
+  const label = normalizeUnitLabel(sourceLabel);
+
+  const piecesNum = Number(v.pieces);
+  const pieces = Number.isFinite(piecesNum) && piecesNum > 0 ? piecesNum : undefined;
+
+  const mrpNum = Number(v.mrp);
+  const mrp = Number.isFinite(mrpNum) && mrpNum > 0 ? mrpNum : undefined;
+
+  // Stock isn't tracked in the imported catalog; treat missing as available.
+  const stock = v.stock == null ? 99 : Number(v.stock) || 0;
+
+  const id =
+    (typeof v.id === "string" && v.id) ||
+    `${slug}-${betterSlugify(label) || `v${index + 1}`}`;
+
+  return {
+    id,
+    label,
+    price: Number(v.price ?? 0) || 0,
+    stock,
+    ...(mrp !== undefined ? { mrp } : {}),
+    ...(pieces !== undefined ? { pieces } : {}),
+  };
+}
+
 export function productFromRow(row: Row): Product {
+  const slug = (row.slug as string | undefined) ?? "variant";
+  const rawVariants = Array.isArray(row.variants) ? row.variants : [];
   return {
     ...(row as unknown as Product),
     categoryLabel: (row.category_label as string | null | undefined) ?? (row as unknown as Product).categoryLabel,
     images: optionalStringArray(row.images),
-    variants: Array.isArray(row.variants) ? (row.variants as Product["variants"]) : [],
+    variants: rawVariants.map((v, i) => normalizeVariant(v, i, slug)),
     tags: optionalStringArray(row.tags),
     rating: Number(row.rating ?? 0),
     reviewCount: Number(row.review_count ?? 0),
     active: row.active !== false,
     badges: optionalStringArray(row.badges),
-    taxRate: Number(row.tax_rate ?? 0),
-    extraCharges: Number(row.extra_charges ?? 0),
   };
 }
 
 export function productToRow(product: Product): Row {
-  const { categoryLabel, reviewCount, taxRate, extraCharges, ...rest } = product;
+  const { categoryLabel, reviewCount, ...rest } = product;
   return {
     ...rest,
     category_label: categoryLabel ?? null,
     review_count: reviewCount,
-    tax_rate: taxRate ?? 0,
-    extra_charges: extraCharges ?? 0,
   };
 }
 
@@ -82,8 +139,6 @@ export function orderFromRow(row: Row): Order {
     razorpay_payment_id,
     delivery_company,
     delivery_tracking_id,
-    tax_amount,
-    extra_charges_amount,
     created_at,
     ...rest
   } = row;
@@ -100,8 +155,6 @@ export function orderFromRow(row: Row): Order {
     razorpayPaymentId: (razorpay_payment_id as string | null | undefined) ?? undefined,
     deliveryCompany: (delivery_company as string | null | undefined) ?? undefined,
     deliveryTrackingId: (delivery_tracking_id as string | null | undefined) ?? undefined,
-    taxAmount: Number(tax_amount ?? 0) || undefined,
-    extraChargesAmount: Number(extra_charges_amount ?? 0) || undefined,
     createdAt: created_at as string,
   };
 }
@@ -119,8 +172,6 @@ export function orderToRow(order: Partial<Order>): Row {
     razorpayPaymentId,
     deliveryCompany,
     deliveryTrackingId,
-    taxAmount,
-    extraChargesAmount,
     createdAt,
     ...rest
   } = order;
@@ -137,10 +188,33 @@ export function orderToRow(order: Partial<Order>): Row {
     ...(razorpayPaymentId !== undefined ? { razorpay_payment_id: razorpayPaymentId ?? null } : {}),
     ...(deliveryCompany !== undefined ? { delivery_company: deliveryCompany ?? null } : {}),
     ...(deliveryTrackingId !== undefined ? { delivery_tracking_id: deliveryTrackingId ?? null } : {}),
-    ...(taxAmount !== undefined ? { tax_amount: taxAmount ?? 0 } : {}),
-    ...(extraChargesAmount !== undefined ? { extra_charges_amount: extraChargesAmount ?? 0 } : {}),
     ...(createdAt !== undefined ? { created_at: createdAt } : {}),
   };
+}
+
+export function postFromRow(row: Row): Post {
+  return {
+    id: String(row.id ?? ""),
+    slug: String(row.slug ?? ""),
+    title: String(row.title ?? ""),
+    excerpt: (row.excerpt as string | null | undefined) ?? "",
+    author: (row.author as string | null | undefined) ?? "",
+    cover: (row.cover as string | null | undefined) ?? "",
+    date: typeof row.date === "string" ? row.date.slice(0, 10) : "",
+    readMinutes: Number(row.read_minutes ?? 0) || 3,
+    content: Array.isArray(row.content)
+      ? row.content.filter((p): p is string => typeof p === "string")
+      : [],
+    active: row.active !== false,
+  };
+}
+
+export function postToRow(post: Partial<Post>): Row {
+  const { readMinutes, content, ...rest } = post;
+  const row = { ...rest } as Row;
+  if (readMinutes !== undefined) row.read_minutes = readMinutes;
+  if (content !== undefined) row.content = Array.isArray(content) ? content : [];
+  return row;
 }
 
 export function customerFromRow(row: Row, ordersCount = 0): Customer {

@@ -9,21 +9,47 @@ import {
   offerToRow,
   orderFromRow,
   orderToRow,
+  postFromRow,
+  postToRow,
   productFromRow,
   productToRow,
 } from "@/lib/supabase/mappers";
 
-type Resource = "products" | "categories" | "offers" | "orders" | "customers";
+type Resource =
+  | "products"
+  | "categories"
+  | "offers"
+  | "orders"
+  | "customers"
+  | "posts";
 
-function resourceTable(resource: Resource) {
-  return resource;
+/**
+ * Strict allowlist of tables this generic route may touch. Without it the
+ * `[resource]` segment would let an admin token read/write ANY table —
+ * including `admins` (password hashes) and `otps` (live login codes).
+ */
+const ALLOWED_RESOURCES: readonly Resource[] = [
+  "products",
+  "categories",
+  "offers",
+  "orders",
+  "customers",
+  "posts",
+];
+
+function isAllowed(resource: string): resource is Resource {
+  return (ALLOWED_RESOURCES as readonly string[]).includes(resource);
 }
+
+/** Resources whose slug must be unique + normalized on create. */
+const SLUGGED_RESOURCES: readonly Resource[] = ["categories", "products", "posts"];
 
 function formatRows(resource: Resource, rows: Record<string, unknown>[]) {
   if (resource === "products") return rows.map(productFromRow);
   if (resource === "categories") return rows.map(categoryFromRow);
   if (resource === "offers") return rows.map(offerFromRow);
   if (resource === "orders") return rows.map(orderFromRow);
+  if (resource === "posts") return rows.map(postFromRow);
   return rows;
 }
 
@@ -36,6 +62,7 @@ function payloadFor(resource: Resource, body: Record<string, unknown>) {
   if (resource === "categories") return categoryToRow(body as never);
   if (resource === "offers") return offerToRow(body as never);
   if (resource === "orders") return orderToRow(body as never);
+  if (resource === "posts") return postToRow(body as never);
   return body;
 }
 
@@ -47,10 +74,10 @@ export async function GET(req: NextRequest, { params }: { params: Promise<Record
   }
 
   const p = (await params) as Record<string, string>;
-  const resource = p.resource as Resource;
-  if (!resourceTable(resource)) return NextResponse.json({ error: "Not found" }, { status: 404 });
+  if (!isAllowed(p.resource)) return NextResponse.json({ error: "Not found" }, { status: 404 });
+  const resource = p.resource;
 
-  const query = supabaseAdmin.from(resourceTable(resource)).select("*");
+  const query = supabaseAdmin.from(resource).select("*");
   const { data, error } = resource === "orders" ? await query.order("created_at", { ascending: false }) : await query;
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
 
@@ -76,10 +103,11 @@ export async function POST(req: NextRequest, { params }: { params: Promise<Recor
     return NextResponse.json({ error: error instanceof Error ? error.message : "Unauthorized" }, { status: 401 });
   }
   const p = (await params) as Record<string, string>;
-  const resource = p.resource as Resource;
+  if (!isAllowed(p.resource)) return NextResponse.json({ error: "Not found" }, { status: 404 });
+  const resource = p.resource;
   const body = (await req.json()) as Record<string, unknown>;
-  const table = resourceTable(resource);
-  // Slug uniqueness enforcement (case-insensitive) + normalization for categories/products.
+  const table = resource;
+  // Slug uniqueness enforcement (case-insensitive) + normalization for slugged resources.
   // We treat collisions as duplicates based on the normalized slug.
   const normalizeSlug = (value: unknown) => {
     if (typeof value !== "string") return "";
@@ -90,7 +118,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<Recor
 
   let payload = payloadFor(resource, body);
 
-  if (resource === "categories" || resource === "products") {
+  if (SLUGGED_RESOURCES.includes(resource)) {
     const incomingSlug = normalizeSlug((body as { slug?: unknown })?.slug);
 
 

@@ -2,11 +2,11 @@ import Link from "next/link";
 import Image from "next/image";
 import { Container } from "@/components/ui/Container";
 import { SectionHeading } from "@/components/ui/SectionHeading";
-import { blogPosts } from "@/lib/mock/blog";
+import { getPosts } from "@/lib/api/posts";
 import { formatDate } from "@/lib/utils";
 
-export function BlogTeasers() {
-  const posts = blogPosts.slice(0, 3);
+export async function BlogTeasers() {
+  const posts = (await getPosts()).slice(0, 3);
   return (
     <section className="bg-cream-100 py-14">
       <Container>

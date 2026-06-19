@@ -3,8 +3,10 @@ import Link from "next/link";
 import Image from "next/image";
 import { ArrowRight, CalendarDays, Clock } from "lucide-react";
 import { Container } from "@/components/ui/Container";
-import { blogPosts } from "@/lib/mock/blog";
+import { getPosts } from "@/lib/api/posts";
 import { formatDate } from "@/lib/utils";
+
+export const dynamic = "force-dynamic";
 
 export const metadata: Metadata = {
   title: "Blog",
@@ -12,8 +14,9 @@ export const metadata: Metadata = {
     "Stories, recipes, and gifting ideas from Bhaktanjaneya Sweets — celebrating pure-ghee tradition one post at a time.",
 };
 
-export default function BlogPage() {
-  const [featured, ...rest] = blogPosts;
+export default async function BlogPage() {
+  const posts = await getPosts();
+  const [featured, ...rest] = posts;
 
   return (
     <div className="py-12">

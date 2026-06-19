@@ -4,20 +4,18 @@ import Image from "next/image";
 import { notFound } from "next/navigation";
 import { ArrowLeft, CalendarDays, Clock, MessageCircle } from "lucide-react";
 import { Container } from "@/components/ui/Container";
-import { blogPosts } from "@/lib/mock/blog";
+import { getPost, getPosts } from "@/lib/api/posts";
 import { formatDate } from "@/lib/utils";
 import { config } from "@/lib/config";
 import { waLink } from "@/lib/whatsapp";
 
-export function generateStaticParams() {
-  return blogPosts.map((p) => ({ slug: p.slug }));
-}
+export const dynamic = "force-dynamic";
 
 export async function generateMetadata(
   props: PageProps<"/blog/[slug]">,
 ): Promise<Metadata> {
   const { slug } = await props.params;
-  const post = blogPosts.find((p) => p.slug === slug);
+  const post = await getPost(slug);
   if (!post) return { title: "Article not found" };
   return {
     title: post.title,
@@ -33,10 +31,10 @@ export async function generateMetadata(
 
 export default async function BlogPostPage(props: PageProps<"/blog/[slug]">) {
   const { slug } = await props.params;
-  const post = blogPosts.find((p) => p.slug === slug);
+  const post = await getPost(slug);
   if (!post) notFound();
 
-  const more = blogPosts.filter((p) => p.slug !== slug).slice(0, 2);
+  const more = (await getPosts()).filter((p) => p.slug !== slug).slice(0, 2);
 
   return (
     <article className="py-10">

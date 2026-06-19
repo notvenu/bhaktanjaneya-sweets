@@ -4,20 +4,28 @@ import { useState } from "react";
 import { Minus, Plus, ShoppingBag, MessageCircle, Check } from "lucide-react";
 import type { Product } from "@/lib/types";
 import { useCart } from "@/context/CartContext";
-import { toCartItem } from "@/lib/product";
+import { toCartItem, variantLabel } from "@/lib/product";
 import { waLink, productEnquiryMessage } from "@/lib/whatsapp";
 import { formatINR, cn, discountPct } from "@/lib/utils";
 
 export function ProductPurchasePanel({ product }: { product: Product }) {
   const { add, setOpen } = useCart();
-  const sorted = [...product.variants].sort((a, b) => a.price - b.price);
-  const [variantId, setVariantId] = useState(sorted[0].id);
+  const variants = Array.isArray(product.variants) ? product.variants : [];
+  const sorted = [...variants].sort((a, b) => a.price - b.price);
+  const [variantId, setVariantId] = useState(sorted[0]?.id ?? "");
+
   const [qty, setQty] = useState(1);
   const [added, setAdded] = useState(false);
 
-  const variant = product.variants.find((v) => v.id === variantId) ?? sorted[0];
+  const variant = (variants.find((v) => v.id === variantId) ?? sorted[0]) ?? {
+    id: "",
+    label: "",
+    price: 0,
+    stock: 0,
+  };
   const pct = discountPct(variant.price, variant.mrp);
-  const out = variant.stock <= 0;
+  const out = (variant.stock ?? 0) <= 0;
+
 
   function addToCart() {
     if (out) return;
@@ -26,9 +34,10 @@ export function ProductPurchasePanel({ product }: { product: Product }) {
     setTimeout(() => setAdded(false), 1500);
   }
 
+  const variantText = variantLabel(variant);
   const waMessage = productEnquiryMessage(
     product.name,
-    qty > 1 ? `${variant.label} x${qty}` : variant.label,
+    qty > 1 ? `${variantText} x${qty}` : variantText,
     variant.price * qty,
   );
 
@@ -62,12 +71,12 @@ export function ProductPurchasePanel({ product }: { product: Product }) {
             Select size
           </p>
           <div className="flex flex-wrap gap-2">
-            {sorted.map((v) => {
+            {sorted.map((v, i) => {
               const sel = v.id === variantId;
               const vo = v.stock <= 0;
               return (
                 <button
-                  key={v.id}
+                  key={v.id || `${v.label}-${i}`}
                   type="button"
                   disabled={vo}
                   onClick={() => {
@@ -81,7 +90,9 @@ export function ProductPurchasePanel({ product }: { product: Product }) {
                       : "border-cream-300 bg-white text-maroon-800 hover:border-maroon-800/40",
                   )}
                 >
-                  <span className="block text-sm font-medium">{v.label}</span>
+                  <span className="block text-sm font-medium">
+                    {variantLabel(v)}
+                  </span>
                   <span
                     className={cn(
                       "block text-xs",

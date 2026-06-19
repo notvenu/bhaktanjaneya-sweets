@@ -20,6 +20,8 @@ export interface RazorpayVerifyPayload {
   razorpay_order_id: string;
   razorpay_payment_id: string;
   razorpay_signature: string;
+  /** Our order id, so the backend can bind the payment and mark it paid. */
+  orderId?: string;
 }
 
 export async function createRazorpayOrder(

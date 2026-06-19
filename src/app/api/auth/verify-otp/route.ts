@@ -24,6 +24,10 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: "Invalid or expired code" }, { status: 400 });
   }
 
+  // Single-use: invalidate every outstanding code for this phone so it can't be
+  // replayed or brute-forced after a successful verification.
+  await supabaseAdmin.from("otps").delete().eq("phone", phone);
+
   const { data: existingCustomer, error: customerError } = await supabaseAdmin
     .from("customers")
     .select("*")

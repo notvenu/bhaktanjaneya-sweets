@@ -14,6 +14,7 @@ import type {
   Offer,
   Order,
   OrderStatus,
+  Post,
   Product,
 } from "@/lib/types";
 import { adminLogin, type AdminSession } from "@/lib/api/adminAuth";
@@ -42,6 +43,7 @@ interface AdminContextValue {
   offers: Offer[];
   orders: Order[];
   customers: Customer[];
+  posts: Post[];
 
   saveProduct: (product: Product) => void;
   deleteProduct: (id: string) => void;
@@ -49,6 +51,8 @@ interface AdminContextValue {
   deleteCategory: (id: string) => void;
   saveOffer: (offer: Offer) => void;
   deleteOffer: (id: string) => void;
+  savePost: (post: Post) => void;
+  deletePost: (id: string) => void;
   updateOrderStatus: (
     id: string,
     status: OrderStatus,
@@ -70,6 +74,7 @@ export function AdminProvider({ children }: { children: React.ReactNode }) {
   const [offers, setOffers] = useState<Offer[]>([]);
   const [orders, setOrders] = useState<Order[]>([]);
   const [customers, setCustomers] = useState<Customer[]>([]);
+  const [posts, setPosts] = useState<Post[]>([]);
 
   const loadAll = useCallback(async () => {
     try {
@@ -91,6 +96,13 @@ export function AdminProvider({ children }: { children: React.ReactNode }) {
       setOffers([]);
       setOrders([]);
       setCustomers([]);
+    }
+    // Posts live in their own table that may not be migrated yet — load
+    // separately so a missing table doesn't blank out the rest of the admin.
+    try {
+      setPosts(await apiGet<Post[]>("/admin/posts"));
+    } catch {
+      setPosts([]);
     }
   }, []);
 
@@ -177,6 +189,22 @@ export function AdminProvider({ children }: { children: React.ReactNode }) {
     });
   }, []);
 
+  const savePost = useCallback((post: Post) => {
+    void (async () => {
+      const exists = posts.some((p) => p.id === post.id);
+      const next = exists
+        ? await apiPut<Post>(`/admin/posts/${post.id}`, post)
+        : await apiPost<Post>("/admin/posts", post);
+      setPosts((prev) => (exists ? prev.map((p) => (p.id === next.id ? next : p)) : [next, ...prev]));
+    })();
+  }, [posts]);
+
+  const deletePost = useCallback((id: string) => {
+    void apiDelete<void>(`/admin/posts/${id}`).then(() => {
+      setPosts((prev) => prev.filter((p) => p.id !== id));
+    });
+  }, []);
+
   const updateOrderStatus = useCallback(
     async (
       id: string,
@@ -215,12 +243,15 @@ export function AdminProvider({ children }: { children: React.ReactNode }) {
       offers,
       orders,
       customers,
+      posts,
       saveProduct,
       deleteProduct,
       saveCategory,
       deleteCategory,
       saveOffer,
       deleteOffer,
+      savePost,
+      deletePost,
       updateOrderStatus,
       updateOrder,
       refreshData,
@@ -236,12 +267,15 @@ export function AdminProvider({ children }: { children: React.ReactNode }) {
       offers,
       orders,
       customers,
+      posts,
       saveProduct,
       deleteProduct,
       saveCategory,
       deleteCategory,
       saveOffer,
       deleteOffer,
+      savePost,
+      deletePost,
       updateOrderStatus,
       updateOrder,
       refreshData,
