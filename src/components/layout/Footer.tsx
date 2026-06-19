@@ -151,10 +151,6 @@ export async function Footer() {
               &copy; {new Date().getFullYear()} {config.businessName}. All rights
               reserved.
             </p>
-            <p className="inline-flex min-w-0 items-center gap-1.5">
-              <ShieldCheck size={14} className="text-saffron-400" />
-              <span>Secure WhatsApp ordering &middot; Online payments coming soon</span>
-            </p>
             <Link href="/admin" className="transition-colors hover:text-saffron-300">
               Admin
             </Link>

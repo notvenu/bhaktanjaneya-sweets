@@ -3,6 +3,7 @@ import { config } from "@/lib/config";
 import { getProducts } from "@/lib/api/products";
 import { getCategories } from "@/lib/api/categories";
 import { getPosts } from "@/lib/api/posts";
+
 import { policySlugs } from "@/lib/content";
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {

@@ -8,6 +8,9 @@ import { BlogTeasers } from "@/components/home/BlogTeasers";
 import { NewsletterCTA } from "@/components/home/NewsletterCTA";
 import { getProducts } from "@/lib/api/products";
 
+export const dynamic = "force-dynamic";
+export const revalidate = 0;
+
 export default async function HomePage() {
   const products = await getProducts();
 

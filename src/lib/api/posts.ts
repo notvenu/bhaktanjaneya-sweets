@@ -1,26 +1,15 @@
 import type { Post } from "@/lib/types";
 import { postFromRow } from "@/lib/supabase/mappers";
 import { supabaseAdmin } from "@/lib/supabase/server";
-import { blogPosts } from "@/lib/mock/blog";
-
 /**
- * Seed posts used as a fallback until the `posts` table exists (run
- * migration 009). Keeps the storefront blog populated out of the box.
+ * Seed posts used as a fallback until the `posts` table exists.
+ * NOTE: Mock blog seed removed because mock modules were missing.
+ * If the `posts` table isn't available, we return an empty list.
  */
 function seedPosts(): Post[] {
-  return blogPosts.map((p) => ({
-    id: p.slug,
-    slug: p.slug,
-    title: p.title,
-    excerpt: p.excerpt,
-    author: p.author,
-    cover: p.cover,
-    date: p.date,
-    readMinutes: p.readMinutes,
-    content: p.content,
-    active: true,
-  }));
+  return [];
 }
+
 
 export async function getPosts(): Promise<Post[]> {
   const { data, error } = await supabaseAdmin
