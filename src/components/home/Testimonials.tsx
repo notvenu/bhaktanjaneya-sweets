@@ -1,8 +1,8 @@
-import { Star, ExternalLink, PenSquare } from "lucide-react";
+import { Star, ExternalLink } from "lucide-react";
 import { Container } from "@/components/ui/Container";
 import { SectionHeading } from "@/components/ui/SectionHeading";
 import { config } from "@/lib/config";
-import { googleRatingSummary } from "@/lib/google-reviews";
+import { googleReviews, googleRatingSummary } from "@/lib/google-reviews";
 
 /** Google "G" logo — official four-colour mark, inline so it needs no asset. */
 function GoogleG({ className }: { className?: string }) {
@@ -29,95 +29,111 @@ function GoogleG({ className }: { className?: string }) {
 }
 
 export function Testimonials() {
-  const writeReviewUrl = `${config.googleReviewsUrl}?action=write-review`;
+  if (googleReviews.length === 0) return null;
 
   return (
-    <section className="py-14 bg-white border-t border-cream-200">
+    <section className="py-14">
       <Container>
         <SectionHeading
           eyebrow="Loved on Google"
           title="What our customers say"
         />
 
-        <div className="grid grid-cols-1 gap-8 lg:grid-cols-12 items-stretch mt-8">
-          {/* Rating summary & CTAs Column */}
-          <div className="lg:col-span-5 flex flex-col justify-between rounded-2xl border border-cream-200 bg-cream-50/30 p-6 sm:p-8 shadow-soft">
+        {/* Rating summary + link to Google */}
+        <div className="mb-7 flex flex-col items-start gap-4 rounded-2xl border border-cream-200 bg-white p-5 shadow-soft sm:flex-row sm:items-center sm:justify-between">
+          <div className="flex items-center gap-3">
+            <GoogleG className="h-9 w-9 shrink-0" />
             <div>
-              <div className="flex items-center gap-4 mb-6">
-                <GoogleG className="h-12 w-12 shrink-0" />
-                <div>
-                  <h4 className="text-lg font-bold text-maroon-900">Google Business Profile</h4>
-                  <p className="text-xs text-ink-500">Sri Sai Bhaktanjaneya Sweets</p>
-                </div>
-              </div>
-
-              {/* Large Star/Score Display */}
-              <div className="mb-6">
-                <div className="flex items-baseline gap-2">
-                  <span className="text-5xl font-extrabold text-maroon-900 tracking-tight">
-                    {googleRatingSummary.average.toFixed(1)}
-                  </span>
-                  <span className="text-lg font-semibold text-ink-400">/ 5.0</span>
-                </div>
-                <div className="flex gap-1 text-saffron-500 mt-2">
+              <div className="flex items-center gap-1.5">
+                <span className="text-xl font-bold text-maroon-900">
+                  {googleRatingSummary.average.toFixed(1)}
+                </span>
+                <span className="flex gap-0.5 text-saffron-500">
                   {Array.from({ length: 5 }).map((_, i) => (
                     <Star
                       key={i}
-                      size={20}
+                      size={15}
                       className={
                         i < Math.round(googleRatingSummary.average)
-                          ? "fill-saffron-500 text-saffron-500"
+                          ? "fill-saffron-500"
                           : "text-cream-300"
                       }
                     />
                   ))}
-                </div>
-                <p className="text-sm font-medium text-ink-600 mt-2">
-                  Based on {googleRatingSummary.count}+ verified customer reviews
-                </p>
+                </span>
               </div>
-
-              <p className="text-sm leading-relaxed text-ink-600 mb-6">
-                We are proud to serve our signature Tapeswaram Kaja and other pure ghee traditional sweets to families across the region. View our live listing and reviews on Google Maps.
+              <p className="text-xs text-ink-500">
+                Based on {googleRatingSummary.count} Google review
+                {googleRatingSummary.count !== 1 ? "s" : ""}
               </p>
             </div>
-
-            {/* Action buttons */}
-            <div className="flex flex-col sm:flex-row gap-3">
-              <a
-                href={config.googleReviewsUrl}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="flex-1 inline-flex h-11 items-center justify-center gap-2 rounded-full bg-maroon-900 px-5 text-sm font-semibold text-white transition-colors hover:bg-maroon-800 shadow-sm"
-              >
-                Read all reviews
-                <ExternalLink size={15} />
-              </a>
-              <a
-                href={writeReviewUrl}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="flex-1 inline-flex h-11 items-center justify-center gap-2 rounded-full border border-maroon-800/30 bg-white px-5 text-sm font-semibold text-maroon-800 transition-colors hover:bg-maroon-800/5 shadow-sm"
-              >
-                Write a review
-                <PenSquare size={15} />
-              </a>
-            </div>
           </div>
 
-          {/* Embedded Google Maps Place Column */}
-          <div className="lg:col-span-7 rounded-2xl overflow-hidden border border-cream-200 bg-cream-100 shadow-soft h-[350px] sm:h-[400px] lg:h-auto min-h-[350px]">
-            <iframe
-              src="https://maps.google.com/maps?q=Sri%20Sai%20Bhaktanjaneya%20Sweets%20Morampudi%20Junction%20Rajahmundry&t=&z=15&ie=UTF8&iwloc=&output=embed"
-              className="w-full h-full border-0"
-              allowFullScreen
-              loading="lazy"
-              referrerPolicy="no-referrer-when-downgrade"
-            />
-          </div>
+          <a
+            href={config.googleReviewsUrl}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="inline-flex h-11 w-full items-center justify-center gap-2 rounded-full border border-maroon-800/30 px-5 text-sm font-semibold text-maroon-800 transition-colors hover:bg-maroon-800/5 sm:w-auto"
+          >
+            Read all reviews on Google
+            <ExternalLink size={15} />
+          </a>
         </div>
+
       </Container>
+
+      {/* Auto-scrolling marquee of reviews (pauses on hover) */}
+      <div className="marquee-group relative mt-7 overflow-hidden [mask-image:linear-gradient(to_right,transparent,black_4%,black_96%,transparent)]">
+        <ul
+          className="flex w-max animate-marquee"
+          style={{ ["--marquee-duration" as string]: `${Math.max(24, googleReviews.length * 9)}s` }}
+        >
+          {[...googleReviews, ...googleReviews].map((r, idx) => (
+            <li
+              key={`${r.author}-${idx}`}
+              className="mr-5 w-[280px] shrink-0 sm:w-[330px]"
+              aria-hidden={idx >= googleReviews.length}
+            >
+              <figure className="flex h-full flex-col rounded-2xl border border-cream-200 bg-white p-6 shadow-soft">
+                <div className="flex items-center justify-between">
+                  <div className="flex gap-0.5 text-saffron-500">
+                    {Array.from({ length: 5 }).map((_, i) => (
+                      <Star
+                        key={i}
+                        size={15}
+                        className={
+                          i < r.rating ? "fill-saffron-500" : "text-cream-300"
+                        }
+                      />
+                    ))}
+                  </div>
+                  <GoogleG className="h-4 w-4 shrink-0" />
+                </div>
+
+                <blockquote className="mt-3 flex-1 text-sm leading-relaxed text-ink-700">
+                  &ldquo;{r.text}&rdquo;
+                </blockquote>
+
+                <figcaption className="mt-4 flex items-center gap-3">
+                  <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-maroon-800 text-sm font-bold text-cream-50">
+                    {r.author.charAt(0).toUpperCase()}
+                  </span>
+                  <div className="min-w-0">
+                    <p className="truncate text-sm font-semibold text-maroon-900">
+                      {r.author}
+                    </p>
+                    <p className="text-xs text-ink-400">
+                      Posted on Google · {r.relativeTime}
+                    </p>
+                  </div>
+                </figcaption>
+              </figure>
+            </li>
+          ))}
+        </ul>
+      </div>
     </section>
   );
 }
+
 

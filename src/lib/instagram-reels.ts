@@ -1,35 +1,45 @@
 export interface InstagramReel {
   id: string;
-  /** Instagram Reel shortcode (found in the Reel URL, e.g. https://www.instagram.com/reel/SHORTCODE/) */
-  shortcode: string;
-  /** Link to watch the Reel directly on Instagram */
+  thumbnail: string;
+  caption: string;
+  likes: string;
+  views: string;
   link: string;
 }
 
-/**
- * Configure the Reels to embed on the home page.
- * Replace the shortcodes below with the actual shortcodes from the @bhaktanjaneyasweets.in profile.
- */
 export const instagramReels: InstagramReel[] = [
   {
     id: "reel-1",
-    shortcode: "C39x_LpM9y0", // Replace with your real sweet-making/cooking Reel shortcode
+    thumbnail: "/images/tapeswaram_kaja_reel.png",
+    caption: "Preparing the iconic Tapeswaram Kaja in pure ghee. The secret is in our traditional layers! ✨ #TapeswaramKaja #PureGheeSweets #AndhraSweets",
+    likes: "2.4k",
+    views: "28.5k",
     link: "https://www.instagram.com/bhaktanjaneyasweets.in/reels/",
   },
   {
     id: "reel-2",
-    shortcode: "C58o_kNSd8x", // Replace with your real sweet-making/cooking Reel shortcode
+    thumbnail: "/images/madatha_kaja_reel.png",
+    caption: "Behind the scenes: Crafting our famous syrupy Madatha Kaja. Every bite is pure bliss! 🍯💫 #MadathaKaja #SweetMakers #AndhraFoodie",
+    likes: "4.1k",
+    views: "42.9k",
     link: "https://www.instagram.com/bhaktanjaneyasweets.in/reels/",
   },
   {
     id: "reel-3",
-    shortcode: "C0600Hivd_K", // Replace with your real sweet-making/cooking Reel shortcode
+    thumbnail: "/images/special_mixture_reel.png",
+    caption: "Our crunchy, spicy Special Mixture being made fresh today! Perfect snack for your evening chai ☕️ #IndianSnacks #TeaTime #RajahmundryFood",
+    likes: "1.8k",
+    views: "18.2k",
     link: "https://www.instagram.com/bhaktanjaneyasweets.in/reels/",
   },
   {
     id: "reel-4",
-    shortcode: "C8f4WlOP2b-", // Replace with your real sweet-making/cooking Reel shortcode
+    thumbnail: "/images/ghee_ladoo_reel.png",
+    caption: "Mouth-watering Ladoos made with premium nuts and pure buffalo ghee. Taste the tradition! 🥥🍯 #GheeSweets #TraditionOfTaste #FestivalSweets",
+    likes: "3.2k",
+    views: "35.1k",
     link: "https://www.instagram.com/bhaktanjaneyasweets.in/reels/",
   },
 ];
+
 
