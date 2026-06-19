@@ -2,7 +2,7 @@ import { Hero } from "@/components/home/Hero";
 import { TrustStrip } from "@/components/home/TrustStrip";
 import { ProductCarousel } from "@/components/product/ProductCarousel";
 import { OfferBanner } from "@/components/home/OfferBanner";
-import { ValueProps } from "@/components/home/ValueProps";
+import { Testimonials } from "@/components/home/Testimonials";
 import { InstagramReels } from "@/components/home/InstagramReels";
 import { BlogTeasers } from "@/components/home/BlogTeasers";
 import { NewsletterCTA } from "@/components/home/NewsletterCTA";
@@ -34,10 +34,11 @@ export default async function HomePage() {
         viewAllHref="/shop?tag=best-seller"
         products={bestSellers.length ? bestSellers : products.slice(0, 6)}
       />
-      <ValueProps />
+      <Testimonials />
       <InstagramReels />
       <BlogTeasers />
       <NewsletterCTA />
     </>
   );
 }
+
