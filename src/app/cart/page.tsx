@@ -8,7 +8,6 @@ import {
   Plus,
   Trash2,
   CreditCard,
-  Banknote,
   Tag,
   ShoppingBag,
   Check,
@@ -36,6 +35,7 @@ import {
 import { DeliveryLocationGate } from "@/components/cart/DeliveryLocationGate";
 import { Combobox } from "@/components/ui/Combobox";
 import { loadRazorpayScript, openRazorpayCheckout } from "@/lib/razorpay";
+import { waLink } from "@/lib/whatsapp";
 import { formatINR, uid } from "@/lib/utils";
 import type { Offer, Order, PaymentMethod, ShippingAddress } from "@/lib/types";
 
@@ -73,9 +73,6 @@ export default function CartPage() {
   const [saveAddress, setSaveAddress] = useState(true);
   const [addressMode, setAddressMode] = useState<"saved" | "new">("new");
   const [deliveryConfirmed, setDeliveryConfirmed] = useState(false);
-  const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>(
-    config.razorpayEnabled ? "razorpay" : "cod",
-  );
 
   const [checkoutError, setCheckoutError] = useState<ErrorDetails | null>(null);
   const [placing, setPlacing] = useState(false);
@@ -284,33 +281,12 @@ export default function CartPage() {
     }
   }
 
-  async function placeCodOrder() {
-    setCheckoutError(null);
-    const validationError = validateCheckout();
-    if (validationError) {
-      setCheckoutError({ title: "Check your details", message: validationError });
-      return;
-    }
-
-    setPlacing(true);
-    try {
-      await saveCheckoutAddressIfNeeded();
-      const order = await createOrder(buildOrder("cod", "cod"), offer?.code);
-      clear();
-      setPlaced({ id: order.id, method: "cod" });
-    } catch (error) {
-      setCheckoutError(getErrorDetails(error, "Could not place order"));
-    } finally {
-      setPlacing(false);
-    }
-  }
-
   async function placeRazorpayOrder() {
     if (!config.razorpayEnabled) {
       setCheckoutError({
         title: "Online payments unavailable",
         message:
-          "Razorpay is not configured on the server. Please choose Cash on delivery.",
+          "Online payment is not configured on the server yet. Please contact us on WhatsApp to complete your order.",
       });
       return;
     }
@@ -394,8 +370,7 @@ export default function CartPage() {
       goLoginForPurchase();
       return;
     }
-    if (paymentMethod === "cod") void placeCodOrder();
-    else void placeRazorpayOrder();
+    void placeRazorpayOrder();
   }
 
 
@@ -410,9 +385,8 @@ export default function CartPage() {
             Order placed!
           </h1>
           <p className="mt-2 text-ink-600">
-            {placed.method === "cod"
-              ? "Your cash on delivery order is confirmed. We'll call you to confirm delivery details."
-              : "Payment received. We're preparing your order and will update you soon."}
+            Payment received. We&apos;re preparing your order and will update you
+            soon.
           </p>
           <p className="mt-3 text-sm font-medium text-maroon-800">
             Order #{placed.id.replace(/^ord_/, "").toUpperCase().slice(0, 8)}
@@ -702,6 +676,16 @@ export default function CartPage() {
                       placeholder={state ? "Type or select your city" : "Select a state first"}
                       ariaLabel="Delivery city"
                       className={`${fieldClass} disabled:cursor-not-allowed disabled:bg-cream-100/60 disabled:opacity-70`}
+                      notListedLabel="My city isn't listed?"
+                      onNotListed={() =>
+                        window.open(
+                          waLink(
+                            `Hello ${config.businessName}! My city isn't in the delivery list. Could you help me arrange delivery (APSRTC / TGSRTC Cargo)?`,
+                          ),
+                          "_blank",
+                          "noopener,noreferrer",
+                        )
+                      }
                     />
                   </div>
                   <label className="text-sm font-medium text-maroon-900">
@@ -854,55 +838,25 @@ export default function CartPage() {
 
             <div className="rounded-2xl border border-cream-200 bg-white p-5">
               <h2 className="font-serif text-lg font-bold text-maroon-900">
-                Payment method
+                Payment
               </h2>
-              <div className="mt-4 space-y-3">
-                <label
-                  className={`flex cursor-pointer items-start gap-3 rounded-xl border border-cream-300 p-4 has-[:checked]:border-maroon-800 has-[:checked]:bg-maroon-800/5 ${
-                    !config.razorpayEnabled ? "opacity-50" : ""
-                  }`}
-                >
-                  <input
-                    type="radio"
-                    name="payment"
-                    value="razorpay"
-                    checked={paymentMethod === "razorpay"}
-                    disabled={!config.razorpayEnabled}
-                    onChange={() => setPaymentMethod("razorpay")}
-                    className="mt-1 accent-maroon-800"
-                  />
+              <div className="mt-4">
+                <div className="flex items-start gap-3 rounded-xl border border-maroon-800 bg-maroon-800/5 p-4">
+                  <CreditCard size={20} className="mt-0.5 shrink-0 text-maroon-800" />
                   <span>
-                    <span className="flex items-center gap-2 font-semibold text-maroon-900">
-                      <CreditCard size={18} /> Pay online
+                    <span className="block font-semibold text-maroon-900">
+                      Pay online
                     </span>
                     <span className="mt-0.5 block text-xs text-ink-500">
-                      UPI, cards, net banking via Razorpay
+                      Secure payment via UPI, cards &amp; net banking (Razorpay).
                     </span>
                     {!config.razorpayEnabled ? (
                       <span className="mt-1 block text-xs text-maroon-700">
-                        Razorpay not configured on this server.
+                        Online payment isn&apos;t configured on this server yet.
                       </span>
                     ) : null}
                   </span>
-                </label>
-                <label className="flex cursor-pointer items-start gap-3 rounded-xl border border-cream-300 p-4 has-[:checked]:border-maroon-800 has-[:checked]:bg-maroon-800/5">
-                  <input
-                    type="radio"
-                    name="payment"
-                    value="cod"
-                    checked={paymentMethod === "cod"}
-                    onChange={() => setPaymentMethod("cod")}
-                    className="mt-1 accent-maroon-800"
-                  />
-                  <span>
-                    <span className="flex items-center gap-2 font-semibold text-maroon-900">
-                      <Banknote size={18} /> Cash on delivery
-                    </span>
-                    <span className="mt-0.5 block text-xs text-ink-500">
-                      Pay when your order is delivered
-                    </span>
-                  </span>
-                </label>
+                </div>
               </div>
 
               {checkoutError && (
@@ -931,8 +885,6 @@ export default function CartPage() {
                     <Loader2 size={18} className="animate-spin" />
                     Processing…
                   </>
-                ) : paymentMethod === "cod" ? (
-                  "Place order (COD)"
                 ) : (
                   "Pay & place order"
                 )}

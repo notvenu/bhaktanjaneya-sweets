@@ -57,12 +57,13 @@ export function ShopControls({ categories }: { categories: Category[] }) {
         />
       </form>
 
-      <div className="flex flex-wrap items-center gap-2">
+      {/* Category chips — swipeable single row on mobile, wraps on larger screens */}
+      <div className="no-scrollbar -mx-4 flex snap-x gap-2 overflow-x-auto px-4 pb-1 sm:mx-0 sm:flex-wrap sm:overflow-visible sm:px-0 sm:pb-0">
         <button
           type="button"
           onClick={() => update({ category: null })}
           className={cn(
-            "h-11 rounded-full border px-4 text-sm font-medium transition-colors sm:h-9",
+            "h-10 shrink-0 snap-start whitespace-nowrap rounded-full border px-4 text-sm font-medium transition-colors sm:h-9",
             !activeCategory
               ? "border-maroon-800 bg-maroon-800 text-cream-50"
               : "border-cream-300 bg-white text-maroon-800 hover:border-maroon-800/40",
@@ -76,7 +77,7 @@ export function ShopControls({ categories }: { categories: Category[] }) {
             type="button"
             onClick={() => update({ category: c.slug })}
             className={cn(
-              "h-11 rounded-full border px-4 text-sm font-medium transition-colors sm:h-9",
+              "h-10 shrink-0 snap-start whitespace-nowrap rounded-full border px-4 text-sm font-medium transition-colors sm:h-9",
               activeCategory === c.slug
                 ? "border-maroon-800 bg-maroon-800 text-cream-50"
                 : "border-cream-300 bg-white text-maroon-800 hover:border-maroon-800/40",
@@ -85,8 +86,26 @@ export function ShopControls({ categories }: { categories: Category[] }) {
             {c.name}
           </button>
         ))}
+      </div>
 
-        <div className="ml-auto flex items-center gap-2">
+      {/* Clear + sort row */}
+      <div className="flex items-center justify-between gap-3">
+        {hasFilters ? (
+          <button
+            type="button"
+            onClick={() => {
+              setQ("");
+              router.push(pathname);
+            }}
+            className="inline-flex items-center gap-1 text-sm font-medium text-maroon-700 hover:text-saffron-600"
+          >
+            <X size={15} /> Clear filters
+          </button>
+        ) : (
+          <span />
+        )}
+
+        <div className="flex shrink-0 items-center gap-2">
           <label htmlFor="sort" className="text-sm text-ink-500">
             Sort
           </label>
@@ -94,7 +113,7 @@ export function ShopControls({ categories }: { categories: Category[] }) {
             id="sort"
             value={activeSort}
             onChange={(e) => update({ sort: e.target.value })}
-            className="h-11 rounded-full border border-cream-300 bg-white px-3 text-sm font-medium text-maroon-800 focus:border-saffron-400 focus:outline-none focus:ring-2 focus:ring-saffron-400/40 sm:h-9"
+            className="h-10 rounded-full border border-cream-300 bg-white px-3 text-sm font-medium text-maroon-800 focus:border-saffron-400 focus:outline-none focus:ring-2 focus:ring-saffron-400/40 sm:h-9"
           >
             {sorts.map((s) => (
               <option key={s.value} value={s.value}>
@@ -104,19 +123,6 @@ export function ShopControls({ categories }: { categories: Category[] }) {
           </select>
         </div>
       </div>
-
-      {hasFilters && (
-        <button
-          type="button"
-          onClick={() => {
-            setQ("");
-            router.push(pathname);
-          }}
-          className="inline-flex items-center gap-1 text-sm font-medium text-maroon-700 hover:text-saffron-600"
-        >
-          <X size={15} /> Clear filters
-        </button>
-      )}
     </div>
   );
 }

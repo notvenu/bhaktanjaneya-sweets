@@ -204,73 +204,105 @@ export function ProductEditor({
             shows as &ldquo;250 g · 5 pcs&rdquo;. Leave blank for items sold by
             weight.
           </p>
-          <div className="space-y-2">
+          <div className="space-y-3">
             {draft.variants.map((v, i) => (
-              <div key={v.id} className="flex flex-wrap items-center gap-2">
-                <input
-                  className={`${inputClass} min-w-0 flex-1 basis-32`}
-                  value={v.label}
-                  onChange={(e) => setVariant(i, { label: e.target.value })}
-                  placeholder="250 g"
-                />
-                <input
-                  className={`${inputClass} shrink-0 basis-20`}
-                  type="number"
-                  min={0}
-                  value={v.pieces ?? ""}
-                  onChange={(e) =>
-                    setVariant(i, {
-                      pieces: e.target.value
-                        ? Number(e.target.value)
-                        : undefined,
-                    })
-                  }
-                  placeholder="Pcs"
-                />
-                <input
-                  className={`${inputClass} shrink-0 basis-24`}
-                  type="number"
-                  min={0}
-                  value={v.price || ""}
-                  onChange={(e) =>
-                    setVariant(i, { price: Number(e.target.value) })
-                  }
-                  placeholder="₹ price"
-                />
-                <input
-                  className={`${inputClass} shrink-0 basis-24`}
-                  type="number"
-                  min={0}
-                  value={v.mrp ?? ""}
-                  onChange={(e) =>
-                    setVariant(i, {
-                      mrp: e.target.value ? Number(e.target.value) : undefined,
-                    })
-                  }
-                  placeholder="MRP"
-                />
-                <input
-                  className={`${inputClass} shrink-0 basis-20`}
-                  type="number"
-                  min={0}
-                  value={v.stock}
-                  onChange={(e) =>
-                    setVariant(i, { stock: Number(e.target.value) })
-                  }
-                  placeholder="stock"
-                />
+              <div
+                key={v.id}
+                className="rounded-xl border border-cream-200 p-3 sm:flex sm:flex-wrap sm:items-center sm:gap-2 sm:border-0 sm:p-0"
+              >
+                <label className="mb-2 block sm:mb-0 sm:min-w-0 sm:flex-1 sm:basis-32">
+                  <span className="mb-1 block text-[11px] font-medium text-ink-400 sm:hidden">
+                    Size / label
+                  </span>
+                  <input
+                    className={`${inputClass} w-full`}
+                    value={v.label}
+                    onChange={(e) => setVariant(i, { label: e.target.value })}
+                    placeholder="250 g"
+                  />
+                </label>
+
+                <div className="grid grid-cols-2 gap-2 sm:contents">
+                  <label className="block sm:basis-20">
+                    <span className="mb-1 block text-[11px] font-medium text-ink-400 sm:hidden">
+                      Pieces
+                    </span>
+                    <input
+                      className={`${inputClass} w-full`}
+                      type="number"
+                      min={0}
+                      value={v.pieces ?? ""}
+                      onChange={(e) =>
+                        setVariant(i, {
+                          pieces: e.target.value
+                            ? Number(e.target.value)
+                            : undefined,
+                        })
+                      }
+                      placeholder="Pcs"
+                    />
+                  </label>
+                  <label className="block sm:basis-24">
+                    <span className="mb-1 block text-[11px] font-medium text-ink-400 sm:hidden">
+                      Price (₹)
+                    </span>
+                    <input
+                      className={`${inputClass} w-full`}
+                      type="number"
+                      min={0}
+                      value={v.price || ""}
+                      onChange={(e) =>
+                        setVariant(i, { price: Number(e.target.value) })
+                      }
+                      placeholder="₹ price"
+                    />
+                  </label>
+                  <label className="block sm:basis-24">
+                    <span className="mb-1 block text-[11px] font-medium text-ink-400 sm:hidden">
+                      MRP (₹)
+                    </span>
+                    <input
+                      className={`${inputClass} w-full`}
+                      type="number"
+                      min={0}
+                      value={v.mrp ?? ""}
+                      onChange={(e) =>
+                        setVariant(i, {
+                          mrp: e.target.value ? Number(e.target.value) : undefined,
+                        })
+                      }
+                      placeholder="MRP"
+                    />
+                  </label>
+                  <label className="block sm:basis-20">
+                    <span className="mb-1 block text-[11px] font-medium text-ink-400 sm:hidden">
+                      Stock
+                    </span>
+                    <input
+                      className={`${inputClass} w-full`}
+                      type="number"
+                      min={0}
+                      value={v.stock}
+                      onChange={(e) =>
+                        setVariant(i, { stock: Number(e.target.value) })
+                      }
+                      placeholder="stock"
+                    />
+                  </label>
+                </div>
+
                 <button
                   type="button"
-                  aria-label="Remove variant"
                   onClick={() =>
                     setDraft((d) => ({
                       ...d,
                       variants: d.variants.filter((_, idx) => idx !== i),
                     }))
                   }
-                  className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg text-ink-400 hover:bg-maroon-700/5 hover:text-maroon-700"
+                  className="mt-2 flex h-10 w-full items-center justify-center gap-1.5 rounded-lg border border-maroon-700/20 text-sm font-medium text-maroon-700 hover:bg-maroon-700/5 sm:mt-0 sm:w-10 sm:shrink-0 sm:border-0 sm:text-ink-400 sm:hover:text-maroon-700"
                 >
                   <Trash2 size={16} />
+                  <span className="sm:hidden">Remove variant</span>
                 </button>
               </div>
             ))}

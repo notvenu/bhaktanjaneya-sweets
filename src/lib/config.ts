@@ -11,6 +11,13 @@ export const config = {
   /** Public site URL, used for SEO/Open Graph absolute URLs. */
   siteUrl: process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3000",
 
+  /** Link to the business's Google reviews / Maps listing. Set this to your real
+   *  Google Business Profile URL so the "Read all reviews on Google" button works.
+   *  Falls back to a Google search until configured. */
+  googleReviewsUrl:
+    process.env.NEXT_PUBLIC_GOOGLE_REVIEWS_URL ??
+    "https://www.google.com/search?q=Bhaktanjaneya+Sweets+reviews",
+
   /** Base URL for the Next.js API routes. Empty env resolves to /api. */
   apiBaseUrl: (process.env.NEXT_PUBLIC_API_BASE_URL || "/api").replace(/\/$/, ""),
 

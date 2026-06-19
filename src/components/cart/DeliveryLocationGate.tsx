@@ -152,6 +152,12 @@ export function DeliveryLocationGate({
             placeholder={stateValue ? "Type or select your city" : "Select a state first"}
             ariaLabel="Delivery city"
             className={selectClass}
+            notListedLabel="My city isn't listed?"
+            onNotListed={() => {
+              setTouched(true);
+              setError("");
+              setUnavailable(true);
+            }}
           />
         </div>
       </div>

@@ -15,6 +15,7 @@ import {
   ChevronDown,
 } from "lucide-react";
 import { Container } from "@/components/ui/Container";
+import { HeaderSearch } from "@/components/layout/HeaderSearch";
 import { useCart } from "@/context/CartContext";
 import { useAuth } from "@/context/AuthContext";
 import { apiGet } from "@/lib/api/client";
@@ -43,7 +44,6 @@ export function Header() {
   const [menuOpen, setMenuOpen] = useState(false);
   const [accountMenuOpen, setAccountMenuOpen] = useState(false);
   const [mobileSearchOpen, setMobileSearchOpen] = useState(false);
-  const [q, setQ] = useState("");
   const [categories, setCategories] = useState<Category[]>([]);
   const [categoriesOpen, setCategoriesOpen] = useState(false);
 
@@ -83,15 +83,6 @@ export function Header() {
     setMenuOpen(false);
     lockBodyScroll(false);
   }
-
-  function submitSearch(e: React.FormEvent<HTMLFormElement>) {
-    e.preventDefault();
-    const query = q.trim();
-    closeMenu();
-    router.push(query ? `/shop?q=${encodeURIComponent(query)}` : "/shop");
-  }
-
-
 
   return (
     <Fragment>
@@ -143,19 +134,11 @@ export function Header() {
 
           {mobileSearchOpen && (
             <div className="absolute left-3 right-3 top-[3.25rem] z-50 rounded-2xl border border-cream-300 bg-cream-50/95 p-3 shadow-card lg:hidden">
-
-              <form onSubmit={submitSearch} className="relative">
-                <Search
-                  size={18}
-                  className="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-ink-400"
-                />
-                <input
-                  value={q}
-                  onChange={(e) => setQ(e.target.value)}
-                  placeholder="Search…"
-                  className="h-11 w-full rounded-full border border-cream-300 bg-cream-100/60 pl-11 pr-4 text-sm text-ink-900 placeholder:text-ink-400 focus:border-saffron-400 focus:outline-none focus:ring-2 focus:ring-saffron-400/40"
-                />
-              </form>
+              <HeaderSearch
+                variant="mobile"
+                autoFocus
+                onNavigate={() => setMobileSearchOpen(false)}
+              />
               <div className="mt-2 flex justify-end">
                 <button
                   type="button"
@@ -170,21 +153,9 @@ export function Header() {
 
 
           {/* Desktop search */}
-          <form
-            onSubmit={submitSearch}
-            className="relative ml-6 hidden flex-1 lg:block"
-          >
-            <Search
-              size={18}
-              className="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-ink-400"
-            />
-            <input
-              value={q}
-              onChange={(e) => setQ(e.target.value)}
-              placeholder="Search sweets, namkeen, gifts…"
-              className="h-11 w-full rounded-full border border-cream-300 bg-cream-100/60 pl-11 pr-4 text-sm text-ink-900 placeholder:text-ink-400 focus:border-saffron-400 focus:outline-none focus:ring-2 focus:ring-saffron-400/40"
-            />
-          </form>
+          <div className="ml-6 hidden flex-1 lg:block">
+            <HeaderSearch variant="desktop" onNavigate={closeMenu} />
+          </div>
 
           {/* Actions */}
           <div className="ml-auto flex shrink-0 items-center gap-1 sm:gap-2">

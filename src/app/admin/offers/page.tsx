@@ -269,9 +269,9 @@ export default function AdminOffersPage() {
           text="Create a coupon code to run a promotion."
         />
       ) : (
-        <div className="overflow-hidden rounded-2xl border border-cream-200 bg-white">
-          <div className="overflow-x-auto">
-            <table className="w-full text-sm">
+        <div className="md:overflow-hidden md:rounded-2xl md:border md:border-cream-200 md:bg-white">
+          <div className="md:overflow-x-auto">
+            <table className="admin-table w-full text-sm">
               <thead>
                 <tr className="border-b border-cream-200 text-left text-xs uppercase tracking-wide text-ink-400">
                   <th className="px-4 py-3 font-medium">Code</th>
@@ -292,20 +292,20 @@ export default function AdminOffersPage() {
                         {o.code}
                       </span>
                     </td>
-                    <td className="px-4 py-3 text-ink-700">{o.title}</td>
-                    <td className="px-4 py-3 text-ink-500">{TYPE_LABEL[o.type]}</td>
-                    <td className="px-4 py-3 font-medium text-maroon-900">
+                    <td data-label="Title" className="px-4 py-3 text-ink-700">{o.title}</td>
+                    <td data-label="Type" className="px-4 py-3 text-ink-500">{TYPE_LABEL[o.type]}</td>
+                    <td data-label="Discount" className="px-4 py-3 font-medium text-maroon-900">
                       {offerValueLabel(o)}
                     </td>
-                    <td className="px-4 py-3 text-ink-500">
+                    <td data-label="Min." className="px-4 py-3 text-ink-500">
                       {o.minSubtotal ? formatINR(o.minSubtotal) : "—"}
                     </td>
-                    <td className="px-4 py-3">
+                    <td data-label="Status" className="px-4 py-3">
                       <Badge tone={o.active ? "leaf" : "muted"}>
                         {o.active ? "Active" : "Inactive"}
                       </Badge>
                     </td>
-                    <td className="px-4 py-3">
+                    <td data-label="Actions" className="px-4 py-3">
                       <div className="flex justify-end gap-1">
                         <button
                           type="button"

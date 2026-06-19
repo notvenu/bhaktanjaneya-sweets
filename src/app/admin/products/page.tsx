@@ -104,9 +104,9 @@ export default function AdminProductsPage() {
           }
         />
       ) : (
-        <div className="overflow-hidden rounded-2xl border border-cream-200 bg-white">
-          <div className="overflow-x-auto">
-            <table className="w-full text-sm">
+        <div className="md:overflow-hidden md:rounded-2xl md:border md:border-cream-200 md:bg-white">
+          <div className="md:overflow-x-auto">
+            <table className="admin-table w-full text-sm">
               <thead>
                 <tr className="border-b border-cream-200 text-left text-xs uppercase tracking-wide text-ink-400">
                   <th className="px-4 py-3 font-medium">Product</th>
@@ -144,13 +144,13 @@ export default function AdminProductsPage() {
                           </div>
                         </div>
                       </td>
-                      <td className="px-4 py-3 capitalize text-ink-600">
+                      <td data-label="Category" className="px-4 py-3 capitalize text-ink-600">
                         {p.categoryLabel ?? p.category}
                       </td>
-                      <td className="px-4 py-3 font-medium text-maroon-900">
+                      <td data-label="Price from" className="px-4 py-3 font-medium text-maroon-900">
                         {formatINR(minPrice)}
                       </td>
-                      <td className="px-4 py-3">
+                      <td data-label="Stock" className="px-4 py-3">
                         <span
                           className={
                             stock === 0
@@ -163,12 +163,12 @@ export default function AdminProductsPage() {
                           {stock}
                         </span>
                       </td>
-                      <td className="px-4 py-3">
+                      <td data-label="Status" className="px-4 py-3">
                         <Badge tone={p.active ? "leaf" : "muted"}>
                           {p.active ? "Active" : "Hidden"}
                         </Badge>
                       </td>
-                      <td className="px-4 py-3">
+                      <td data-label="Actions" className="px-4 py-3">
                         <div className="flex justify-end gap-1">
                           <button
                             type="button"

@@ -67,9 +67,9 @@ export default function AdminCustomersPage() {
           }
         />
       ) : (
-        <div className="overflow-hidden rounded-2xl border border-cream-200 bg-white">
-          <div className="overflow-x-auto">
-            <table className="w-full text-sm">
+        <div className="md:overflow-hidden md:rounded-2xl md:border md:border-cream-200 md:bg-white">
+          <div className="md:overflow-x-auto">
+            <table className="admin-table w-full text-sm">
               <thead>
                 <tr className="border-b border-cream-200 text-left text-xs uppercase tracking-wide text-ink-400">
                   <th className="px-4 py-3 font-medium">Customer</th>
@@ -93,17 +93,17 @@ export default function AdminCustomersPage() {
                         </span>
                       </div>
                     </td>
-                    <td className="px-4 py-3 text-ink-600">+91 {c.phone}</td>
-                    <td className="px-4 py-3 text-ink-600">
+                    <td data-label="Phone" className="px-4 py-3 text-ink-600">+91 {c.phone}</td>
+                    <td data-label="Orders" className="px-4 py-3 text-ink-600">
                       {c.ordersCount ?? 0}
                     </td>
-                    <td className="px-4 py-3 font-medium text-maroon-900">
+                    <td data-label="Total spend" className="px-4 py-3 font-medium text-maroon-900">
                       {formatINR(spendByPhone.get(c.phone) ?? 0)}
                     </td>
-                    <td className="px-4 py-3 text-ink-500">
+                    <td data-label="Joined" className="px-4 py-3 text-ink-500">
                       {formatDate(c.createdAt)}
                     </td>
-                    <td className="px-4 py-3 text-right">
+                    <td data-label="Contact" className="px-4 py-3 text-right">
                       <a
                         href={waLink(
                           `Hello${c.name ? ` ${c.name}` : ""}! Greetings from ${config.businessName}.`,

@@ -87,13 +87,11 @@ export function ProductCard({
         )}
       </Link>
 
-      <div className="flex flex-1 flex-col p-4">
-        {product.categoryLabel && (
-          <span className="text-xs font-medium uppercase tracking-wide text-ink-400">
-            {product.categoryLabel}
-          </span>
-        )}
-        <h3 className="mt-1 font-serif text-base font-semibold leading-snug text-maroon-900">
+      <div className="flex flex-1 flex-col p-3 sm:p-4">
+        <span className="line-clamp-1 text-[11px] font-medium uppercase tracking-wide text-ink-400 sm:text-xs">
+          {product.categoryLabel ?? " "}
+        </span>
+        <h3 className="mt-1 line-clamp-2 min-h-[2.4rem] font-serif text-sm font-semibold leading-snug text-maroon-900 sm:min-h-[2.75rem] sm:text-base">
           <Link href={href} className="transition-colors hover:text-saffron-600">
             {product.name}
           </Link>
@@ -103,8 +101,8 @@ export function ProductCard({
           <Rating value={product.rating} count={product.reviewCount} />
         </div>
 
-        <div className="mt-2 flex items-baseline gap-2">
-          <span className="text-lg font-bold text-maroon-900">
+        <div className="mt-2 flex flex-wrap items-baseline gap-x-2 gap-y-0.5">
+          <span className="text-base font-bold text-maroon-900 sm:text-lg">
             {hasRange && (
               <span className="mr-1 text-xs font-medium text-ink-400">from</span>
             )}
@@ -117,7 +115,7 @@ export function ProductCard({
           )}
         </div>
 
-        <div className="mt-4 flex items-center gap-2 pt-1">
+        <div className="mt-auto flex items-center gap-2 pt-3">
           <button
             type="button"
             onClick={quickAdd}

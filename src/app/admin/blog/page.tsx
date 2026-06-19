@@ -236,9 +236,9 @@ export default function AdminBlogPage() {
           text="Write your first article, or run migration 009 to enable saving posts to the database."
         />
       ) : (
-        <div className="overflow-hidden rounded-2xl border border-cream-200 bg-white">
-          <div className="overflow-x-auto">
-            <table className="w-full text-sm">
+        <div className="md:overflow-hidden md:rounded-2xl md:border md:border-cream-200 md:bg-white">
+          <div className="md:overflow-x-auto">
+            <table className="admin-table w-full text-sm">
               <thead>
                 <tr className="border-b border-cream-200 text-left text-xs uppercase tracking-wide text-ink-400">
                   <th className="px-4 py-3 font-medium">Title</th>
@@ -255,14 +255,14 @@ export default function AdminBlogPage() {
                       <div className="font-medium text-maroon-900">{p.title}</div>
                       <div className="text-xs text-ink-400">/blog/{p.slug}</div>
                     </td>
-                    <td className="px-4 py-3 text-ink-500">{p.date ? formatDate(p.date) : "—"}</td>
-                    <td className="px-4 py-3 text-ink-500">{p.readMinutes} min</td>
-                    <td className="px-4 py-3">
+                    <td data-label="Date" className="px-4 py-3 text-ink-500">{p.date ? formatDate(p.date) : "—"}</td>
+                    <td data-label="Read" className="px-4 py-3 text-ink-500">{p.readMinutes} min</td>
+                    <td data-label="Status" className="px-4 py-3">
                       <Badge tone={p.active ? "leaf" : "muted"}>
                         {p.active ? "Published" : "Draft"}
                       </Badge>
                     </td>
-                    <td className="px-4 py-3">
+                    <td data-label="Actions" className="px-4 py-3">
                       <div className="flex justify-end gap-1">
                         <button
                           type="button"

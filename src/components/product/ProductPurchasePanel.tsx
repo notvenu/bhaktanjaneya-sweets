@@ -148,13 +148,13 @@ export function ProductPurchasePanel({ product }: { product: Product }) {
       </div>
 
       {/* Actions */}
-      <div className="mt-6 flex flex-col gap-3 sm:flex-row">
+      <div className="mt-6 flex flex-col gap-3">
         <button
           type="button"
           disabled={out}
           onClick={addToCart}
           className={cn(
-            "inline-flex h-12 flex-1 items-center justify-center gap-2 rounded-full text-sm font-semibold transition-colors disabled:cursor-not-allowed disabled:opacity-50",
+            "inline-flex h-14 w-full items-center justify-center gap-2.5 rounded-full text-base font-semibold shadow-soft transition-colors disabled:cursor-not-allowed disabled:opacity-50",
             added
               ? "bg-leaf-600 text-white"
               : "bg-maroon-800 text-cream-50 hover:bg-maroon-700",
@@ -162,11 +162,11 @@ export function ProductPurchasePanel({ product }: { product: Product }) {
         >
           {added ? (
             <>
-              <Check size={18} /> Added to cart
+              <Check size={20} /> Added to cart
             </>
           ) : (
             <>
-              <ShoppingBag size={18} /> Add to cart
+              <ShoppingBag size={20} /> Add to cart
             </>
           )}
         </button>
@@ -174,16 +174,16 @@ export function ProductPurchasePanel({ product }: { product: Product }) {
           href={waLink(waMessage)}
           target="_blank"
           rel="noopener noreferrer"
-          className="inline-flex h-12 flex-1 items-center justify-center gap-2 rounded-full bg-[#25D366] text-sm font-semibold text-white transition-colors hover:bg-[#1fb457]"
+          className="inline-flex h-14 w-full items-center justify-center gap-2.5 rounded-full bg-[#25D366] text-base font-semibold text-white shadow-soft transition-colors hover:bg-[#1fb457]"
         >
-          <MessageCircle size={18} /> Order on WhatsApp
+          <MessageCircle size={20} /> Order on WhatsApp
         </a>
       </div>
 
       <button
         type="button"
         onClick={() => setOpen(true)}
-        className="mt-3 text-sm font-medium text-maroon-700 transition-colors hover:text-saffron-600"
+        className="mt-4 inline-flex items-center gap-1 text-sm font-semibold text-maroon-700 transition-colors hover:text-saffron-600"
       >
         View cart →
       </button>

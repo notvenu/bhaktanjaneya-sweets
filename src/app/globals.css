@@ -87,6 +87,82 @@ body {
   min-width: 0;
 }
 
+/* Admin data tables collapse into stacked cards on small screens. Add the
+   `admin-table` class to a <table>, give each <td> a `data-label` (the first
+   cell becomes the card title and needs none), and rows render as cards below
+   the `md` breakpoint instead of forcing a horizontal scroll. */
+@media (max-width: 767px) {
+  .admin-table thead {
+    display: none;
+  }
+  .admin-table,
+  .admin-table tbody,
+  .admin-table tr,
+  .admin-table td {
+    display: block;
+    width: 100%;
+  }
+  .admin-table tr {
+    border: 1px solid var(--color-cream-200);
+    border-radius: 1rem;
+    background: #fff;
+    margin-bottom: 0.75rem;
+    padding: 0.15rem 0.4rem 0.45rem;
+    box-shadow: var(--shadow-soft);
+  }
+  .admin-table tr:last-child {
+    margin-bottom: 0;
+  }
+  .admin-table td {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+    padding: 0.5rem 0.55rem;
+    text-align: right;
+  }
+  .admin-table td::before {
+    content: attr(data-label);
+    font-size: 0.6875rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    color: var(--color-ink-400);
+    text-align: left;
+    white-space: nowrap;
+  }
+  /* First cell is the card title: full width, left aligned, no label. */
+  .admin-table td:first-child {
+    border-bottom: 1px solid var(--color-cream-200);
+    padding-top: 0.6rem;
+    padding-bottom: 0.6rem;
+    margin-bottom: 0.15rem;
+    text-align: left;
+  }
+  .admin-table td:first-child::before {
+    content: none;
+  }
+}
+
+/* Auto-scrolling marquee (e.g. Google reviews). The track holds two identical
+   copies of the content and each item carries its own trailing margin, so a
+   -50% shift loops seamlessly. */
+@keyframes marquee-x {
+  from {
+    transform: translateX(0);
+  }
+  to {
+    transform: translateX(-50%);
+  }
+}
+.animate-marquee {
+  animation: marquee-x var(--marquee-duration, 40s) linear infinite;
+  will-change: transform;
+}
+.marquee-group:hover .animate-marquee {
+  animation-play-state: paused;
+}
+
 /* Respect users who prefer reduced motion (vestibular safety, WCAG 2.3.3). */
 @media (prefers-reduced-motion: reduce) {
   html {

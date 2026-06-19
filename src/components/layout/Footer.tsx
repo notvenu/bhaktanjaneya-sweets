@@ -1,6 +1,6 @@
 import Link from "next/link";
 import Image from "next/image";
-import { MapPin, Phone, Mail, ShieldCheck } from "lucide-react";
+import { MapPin, Phone, Mail } from "lucide-react";
 import { Container } from "@/components/ui/Container";
 import { NewsletterForm } from "@/components/NewsletterForm";
 import {
@@ -9,7 +9,6 @@ import {
   YoutubeIcon,
 } from "@/components/icons/BrandIcons";
 import { config } from "@/lib/config";
-import { getCategories } from "@/lib/api/categories";
 
 const companyLinks = [
   { href: "/about", label: "Our Story" },
@@ -56,27 +55,13 @@ function FooterColumn({
   );
 }
 
-export async function Footer() {
-  let categories: { slug: string; name: string }[] = [];
-  try {
-    categories = await getCategories();
-  } catch {
-    categories = [];
-  }
-
-  const shopLinks = [
-    { href: "/shop", label: "Shop All" },
-    ...categories.map((c) => ({ href: `/collections/${c.slug}`, label: c.name })),
-    { href: "/shop?tag=best-seller", label: "Best Sellers" },
-    { href: "/bulk-orders", label: "Bulk & Gifting" },
-  ];
-
+export function Footer() {
   return (
     <footer className="mt-8 bg-maroon-900 text-cream-50 sm:mt-10">
       <Container>
-        <div className="grid min-w-0 grid-cols-1 gap-8 py-12 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-[2fr_1fr_1.25fr_1.15fr_1.6fr] lg:gap-10 lg:py-14">
+        <div className="grid min-w-0 gap-y-9 py-12 lg:grid-cols-[2fr_1fr_1fr_1.7fr] lg:gap-10 lg:py-14">
           {/* Brand */}
-          <div className="min-w-0 sm:col-span-2 lg:col-span-1">
+          <div className="min-w-0 lg:col-span-1">
             <Link href="/" className="inline-flex items-center gap-3">
               <Image
                 src="/images/logo.png"
@@ -112,12 +97,14 @@ export async function Footer() {
             </div>
           </div>
 
-          <FooterColumn title="Shop" links={shopLinks} />
-          <FooterColumn title="Company" links={companyLinks} />
-          <FooterColumn title="Policies" links={policyLinks} />
+          {/* Link columns — 2-up on mobile, inline on desktop */}
+          <div className="grid min-w-0 grid-cols-2 gap-x-6 gap-y-9 lg:contents">
+            <FooterColumn title="Company" links={companyLinks} />
+            <FooterColumn title="Policies" links={policyLinks} />
+          </div>
 
           {/* Newsletter + contact */}
-          <div className="min-w-0 sm:col-span-2 lg:col-span-1">
+          <div className="min-w-0 lg:col-span-1">
             <h3 className="mb-4 text-sm font-semibold uppercase tracking-wide text-saffron-400">
               Stay in touch
             </h3>

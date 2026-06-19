@@ -158,7 +158,6 @@ export const policies: Record<string, Policy> = {
         heading: "Refund timelines",
         body: [
           "Approved refunds are processed to the original payment method where possible. Bank, UPI, card, or payment-gateway timelines may vary after we initiate the refund.",
-          "Cash-on-delivery refunds, if applicable, may require bank or UPI details from the customer for transfer.",
           "Shipping charges may be non-refundable unless the issue was caused by us or the courier partner.",
         ],
       },
@@ -245,7 +244,7 @@ export const policies: Record<string, Policy> = {
       {
         heading: "Payments, cancellations & support",
         body: [
-          "Online payments, if used, are processed through third-party payment partners. Cash on delivery availability may depend on location, order value, and internal approval.",
+          "Payments are made securely online through our third-party payment partners (UPI, cards, and net banking).",
           "Cancellation requests are easiest to accept before preparation or dispatch. Once food is prepared or shipped, cancellation and refund options may be limited.",
           "For any question about an order, contact us with your order number and registered phone number so we can help quickly.",
         ],

@@ -20,6 +20,8 @@ export function Combobox({
   className,
   ariaLabel,
   emptyText = "No matching city",
+  notListedLabel,
+  onNotListed,
 }: {
   value: string;
   onChange: (value: string) => void;
@@ -29,6 +31,11 @@ export function Combobox({
   className?: string;
   ariaLabel?: string;
   emptyText?: string;
+  /** Label for the "my city isn't listed" action shown in the dropdown. */
+  notListedLabel?: string;
+  /** When provided, renders an action button so users whose city is missing
+   *  from `options` can still get help (e.g. arrange cargo delivery). */
+  onNotListed?: () => void;
 }) {
   const [open, setOpen] = useState(false);
   const [query, setQuery] = useState(value);
@@ -66,6 +73,26 @@ export function Combobox({
     setQuery(option);
     setOpen(false);
   }
+
+  function handleNotListed() {
+    setOpen(false);
+    setQuery(value);
+    onNotListed?.();
+  }
+
+  const notListedButton =
+    onNotListed != null ? (
+      <button
+        type="button"
+        onPointerDown={(e) => {
+          e.preventDefault();
+          handleNotListed();
+        }}
+        className="block w-full px-4 py-2.5 text-left text-sm font-medium text-maroon-700 underline underline-offset-4 hover:bg-saffron-500/10 hover:text-saffron-600"
+      >
+        {notListedLabel ?? "My city isn't listed?"}
+      </button>
+    ) : null;
 
   function onKeyDown(e: React.KeyboardEvent<HTMLInputElement>) {
     if (disabled) return;
@@ -150,10 +177,18 @@ export function Combobox({
                 ) : null}
               </li>
             ))}
+            {notListedButton ? (
+              <li role="presentation" className="mt-1 border-t border-cream-200 pt-1">
+                {notListedButton}
+              </li>
+            ) : null}
           </ul>
         ) : (
-          <div className="absolute z-30 mt-1 w-full rounded-xl border border-cream-300 bg-white px-4 py-3 text-sm text-ink-500 shadow-card">
-            {emptyText}
+          <div className="absolute z-30 mt-1 w-full overflow-hidden rounded-xl border border-cream-300 bg-white shadow-card">
+            <p className="px-4 py-3 text-sm text-ink-500">{emptyText}</p>
+            {notListedButton ? (
+              <div className="border-t border-cream-200">{notListedButton}</div>
+            ) : null}
           </div>
         )
       ) : null}
