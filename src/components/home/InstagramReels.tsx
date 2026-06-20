@@ -1,4 +1,3 @@
-import Image from "next/image";
 import { Heart, Play, ExternalLink } from "lucide-react";
 import { Container } from "@/components/ui/Container";
 import { SectionHeading } from "@/components/ui/SectionHeading";
@@ -30,9 +29,9 @@ interface InstagramReelsProps {
 }
 
 export function InstagramReels({ reels }: InstagramReelsProps) {
-  if (!reels || reels.length === 0) return null;
-
   const instagramUrl = "https://www.instagram.com/bhaktanjaneyasweets.in/reels/";
+
+  if (!reels || reels.length === 0) return null;
 
   return (
     <section className="py-14 bg-cream-50/50 border-t border-cream-200">
@@ -90,13 +89,15 @@ export function InstagramReels({ reels }: InstagramReelsProps) {
                 rel="noopener noreferrer"
                 className="block relative aspect-[9/16] w-full overflow-hidden rounded-2xl border border-cream-200 bg-black group shadow-soft hover:shadow-md transition-shadow"
               >
-                {/* Reel thumbnail */}
-                <Image
+                {/* Reel thumbnail — plain img so remote feed URLs work without
+                    per-domain next/image config (covers local fallbacks too). */}
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img
                   src={r.thumbnail}
                   alt=""
-                  fill
-                  sizes="(max-width: 640px) 240px, 280px"
-                  className="object-cover opacity-90 group-hover:opacity-100 group-hover:scale-[1.03] transition-all duration-300"
+                  referrerPolicy="no-referrer"
+                  loading="lazy"
+                  className="absolute inset-0 h-full w-full object-cover opacity-90 group-hover:opacity-100 group-hover:scale-[1.03] transition-all duration-300"
                 />
 
                 {/* Gradient overlay */}

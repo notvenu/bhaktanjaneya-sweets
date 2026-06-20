@@ -155,17 +155,6 @@ export function Header() {
             </span>
           </Link>
 
-          {/* Mobile search icon */}
-          <button
-            type="button"
-            onClick={() => setMobileSearchOpen(true)}
-            aria-label="Search"
-            className="relative flex h-10 w-10 shrink-0 items-center justify-center rounded-full text-maroon-800 hover:bg-maroon-800/5 lg:hidden"
-          >
-            <Search size={20} />
-          </button>
-
-
           {mobileSearchOpen && (
             <div className="absolute inset-x-0 top-0 z-50 flex h-16 items-center gap-3 border-b border-cream-300 bg-cream-50 px-4 lg:hidden">
               <div className="flex-1">
@@ -194,6 +183,16 @@ export function Header() {
 
           {/* Actions */}
           <div className="ml-auto flex shrink-0 items-center gap-1 sm:gap-2">
+            {/* Mobile search icon — grouped with the other actions on the right */}
+            <button
+              type="button"
+              onClick={() => setMobileSearchOpen(true)}
+              aria-label="Search"
+              className="relative flex h-10 w-10 shrink-0 items-center justify-center rounded-full text-maroon-800 hover:bg-maroon-800/5 lg:hidden"
+            >
+              <Search size={20} />
+            </button>
+
             <a
               href={waLink(`Hello ${config.businessName}! I have a question.`)}
               target="_blank"
