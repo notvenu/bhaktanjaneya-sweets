@@ -3,6 +3,7 @@ import { Container } from "@/components/ui/Container";
 import { SectionHeading } from "@/components/ui/SectionHeading";
 import { config } from "@/lib/config";
 import { GoogleReview } from "@/lib/google-reviews";
+import { ReviewsMarquee } from "@/components/home/ReviewsMarquee";
 
 /** Google "G" logo — official four-colour mark, inline so it needs no asset. */
 function GoogleG({ className }: { className?: string }) {
@@ -88,62 +89,9 @@ export function Testimonials({ reviews, ratingSummary }: TestimonialsProps) {
           </a>
         </div>
 
-        {/* Auto-scrolling marquee — pauses on hover. The list is repeated 4× so
-            one half always exceeds the container width, keeping the loop
-            seamless with no empty gap; the mask fades both edges within the
-            content column. */}
-        <div className="marquee-group relative mt-7 overflow-hidden [mask-image:linear-gradient(to_right,transparent,black_8%,black_92%,transparent)]">
-          <ul
-            className="flex w-max animate-marquee"
-            style={{ ["--marquee-duration" as string]: `${Math.max(24, reviews.length * 9)}s` }}
-          >
-            {Array.from({ length: 4 })
-              .flatMap(() => reviews)
-              .map((r, idx) => (
-            <li
-              key={`${r.author}-${idx}`}
-              className="mr-5 w-[280px] shrink-0 sm:w-[330px]"
-              aria-hidden={idx >= reviews.length}
-            >
-              <figure className="flex h-full flex-col rounded-2xl border border-cream-200 bg-white p-6 shadow-soft">
-                <div className="flex items-center justify-between">
-                  <div className="flex gap-0.5 text-saffron-500">
-                    {Array.from({ length: 5 }).map((_, i) => (
-                      <Star
-                        key={i}
-                        size={15}
-                        className={
-                          i < r.rating ? "fill-saffron-500" : "text-cream-300"
-                        }
-                      />
-                    ))}
-                  </div>
-                  <GoogleG className="h-4 w-4 shrink-0" />
-                </div>
-
-                <blockquote className="mt-3 flex-1 text-sm leading-relaxed text-ink-700">
-                  &ldquo;{r.text}&rdquo;
-                </blockquote>
-
-                <figcaption className="mt-4 flex items-center gap-3">
-                  <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-maroon-800 text-sm font-bold text-cream-50">
-                    {r.author.charAt(0).toUpperCase()}
-                  </span>
-                  <div className="min-w-0">
-                    <p className="truncate text-sm font-semibold text-maroon-900">
-                      {r.author}
-                    </p>
-                    <p className="text-xs text-ink-400">
-                      Posted on Google · {r.relativeTime}
-                    </p>
-                  </div>
-                </figcaption>
-              </figure>
-            </li>
-          ))}
-          </ul>
-        </div>
       </Container>
+
+      <ReviewsMarquee reviews={reviews} />
     </section>
   );
 }

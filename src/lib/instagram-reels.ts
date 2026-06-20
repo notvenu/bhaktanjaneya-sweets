@@ -43,10 +43,55 @@ export const instagramReels: InstagramReel[] = [
 ];
 
 /**
- * Fetches live reels/posts from the Instagram Basic Display API server-side.
- * Falls back to local generated cover images if the access token is not configured.
+ * Fetches reels from a public RSS/JSON feed (e.g. an RSS.app feed generated from
+ * the public Instagram profile URL — no Instagram account/login required).
+ * Returns null if not configured or the request fails, so the caller can fall back.
+ */
+export async function getRssReels(): Promise<InstagramReel[] | null> {
+  const feedUrl = process.env.INSTAGRAM_RSS_URL;
+  if (!feedUrl) return null;
+
+  try {
+    const res = await fetch(feedUrl, { cache: "no-store" });
+    const data = await res.json();
+    const items: any[] = data?.items ?? [];
+
+    const reels: InstagramReel[] = items
+      .map((item) => {
+        const caption = (item.title || item.content_text || item.content_html || "")
+          .replace(/<[^>]*>/g, "") // strip any HTML tags
+          .trim();
+        const thumbnail =
+          item.image ||
+          item.banner_image ||
+          item.attachments?.[0]?.url ||
+          "";
+        return {
+          id: String(item.id || item.url || caption),
+          thumbnail,
+          caption,
+          likes: "View",
+          views: "Reel",
+          link: item.url || "https://www.instagram.com/bhaktanjaneyasweets.in/reels/",
+        };
+      })
+      .filter((r) => r.thumbnail); // need a cover image to show a card
+
+    return reels.length ? reels : null;
+  } catch (error) {
+    console.error("Error fetching Instagram RSS feed:", error);
+    return null;
+  }
+}
+
+/**
+ * Live reels for the homepage. Prefers the public RSS feed (no account needed),
+ * then the official Instagram Graph API, then local hand-curated covers.
  */
 export async function getLiveInstagramReels() {
+  const rss = await getRssReels();
+  if (rss) return rss;
+
   const token = process.env.INSTAGRAM_ACCESS_TOKEN;
 
   if (!token) {

@@ -63,11 +63,74 @@ export const googleRatingSummary = {
   count: 142,
 };
 
+/** Format an ISO timestamp as a Google-style relative time, e.g. "2 weeks ago". */
+function toRelativeTime(iso: string): string {
+  const ms = Date.now() - new Date(iso).getTime();
+  if (!Number.isFinite(ms) || ms < 0) return "recently";
+  const days = Math.floor(ms / 86_400_000);
+  if (days < 1) return "today";
+  if (days < 7) return days === 1 ? "a day ago" : `${days} days ago`;
+  const weeks = Math.floor(days / 7);
+  if (weeks < 5) return weeks === 1 ? "a week ago" : `${weeks} weeks ago`;
+  const months = Math.floor(days / 30);
+  if (months < 12) return months === 1 ? "a month ago" : `${months} months ago`;
+  const years = Math.floor(days / 365);
+  return years === 1 ? "a year ago" : `${years} years ago`;
+}
+
 /**
- * Fetches live reviews from the Google Places API server-side.
- * Falls back to hand-curated placeholders if API keys are not configured.
+ * Fetches reviews from Featurable's public widget API (free, no key, no Google
+ * API) and maps them to our GoogleReview shape. Returns null if not configured
+ * or the request fails, so the caller can fall back.
+ */
+export async function getFeaturableReviews() {
+  const widgetId = process.env.NEXT_PUBLIC_FEATURABLE_WIDGET_ID;
+  if (!widgetId) return null;
+
+  try {
+    const res = await fetch(
+      `https://featurable.com/api/v2/widgets/${widgetId}`,
+      { cache: "no-store" }, // always fetch fresh so API edits show up immediately
+    );
+    const data = await res.json();
+    const widget = data?.widget;
+    if (!data?.success || !widget) {
+      console.warn("Featurable API returned no widget data:", data?.message ?? data);
+      return null;
+    }
+
+    const reviews: GoogleReview[] = (widget.reviews ?? [])
+      .filter((r: any) => r?.text && r.text.trim().length > 0)
+      .map((r: any) => ({
+        author: r.author?.name ?? "Google user",
+        rating: r.rating?.value ?? 5,
+        text: r.text,
+        relativeTime: toRelativeTime(r.publishedAt),
+        avatar: r.author?.avatarUrl ?? undefined,
+      }));
+
+    const summary = widget.gbpLocationSummary ?? {};
+    return {
+      reviews: reviews.length ? reviews : googleReviews,
+      ratingSummary: {
+        average: summary.rating ?? googleRatingSummary.average,
+        count: summary.reviewsCount ?? googleRatingSummary.count,
+      },
+    };
+  } catch (error) {
+    console.error("Error fetching Featurable reviews:", error);
+    return null;
+  }
+}
+
+/**
+ * Live reviews for the homepage. Prefers the free Featurable API, then the
+ * Google Places API, then hand-curated placeholders.
  */
 export async function getLiveGoogleReviews() {
+  const featurable = await getFeaturableReviews();
+  if (featurable) return featurable;
+
   const placeId = process.env.GOOGLE_PLACE_ID;
   const apiKey = process.env.GOOGLE_MAPS_API_KEY;
 
