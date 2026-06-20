@@ -52,7 +52,7 @@ export async function getRssReels(): Promise<InstagramReel[] | null> {
   if (!feedUrl) return null;
 
   try {
-    const res = await fetch(feedUrl, { cache: "no-store" });
+    const res = await fetch(feedUrl, { next: { revalidate: 600 } }); // cache reels 10 min
     const data = await res.json();
     const items: any[] = data?.items ?? [];
 

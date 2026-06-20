@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Star, X } from "lucide-react";
 import type { GoogleReview } from "@/lib/google-reviews";
 
@@ -50,10 +50,14 @@ const READ_MORE_THRESHOLD = 150;
 
 export function ReviewsMarquee({ reviews }: { reviews: GoogleReview[] }) {
   const [active, setActive] = useState<GoogleReview | null>(null);
+  const closeBtnRef = useRef<HTMLButtonElement>(null);
 
-  // While the modal is open: close on Escape and lock background scroll.
+  // While the modal is open: close on Escape, lock background scroll, move focus
+  // into the dialog, and restore focus to the trigger on close.
   useEffect(() => {
     if (!active) return;
+    const previouslyFocused = document.activeElement as HTMLElement | null;
+    closeBtnRef.current?.focus();
     const onKey = (e: KeyboardEvent) => {
       if (e.key === "Escape") setActive(null);
     };
@@ -62,6 +66,7 @@ export function ReviewsMarquee({ reviews }: { reviews: GoogleReview[] }) {
     return () => {
       document.removeEventListener("keydown", onKey);
       document.body.style.overflow = "";
+      previouslyFocused?.focus?.();
     };
   }, [active]);
 
@@ -127,6 +132,7 @@ export function ReviewsMarquee({ reviews }: { reviews: GoogleReview[] }) {
           <div className="absolute inset-0 bg-ink-900/60" onClick={() => setActive(null)} />
           <div className="relative z-10 w-full max-w-lg rounded-2xl border border-cream-200 bg-white p-6 shadow-card">
             <button
+              ref={closeBtnRef}
               type="button"
               onClick={() => setActive(null)}
               aria-label="Close"

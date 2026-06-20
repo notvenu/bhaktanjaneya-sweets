@@ -1,17 +1,13 @@
 import { NextResponse } from "next/server";
 import { supabaseAdmin } from "@/lib/supabase/server";
 import { orderFromRow } from "@/lib/supabase/mappers";
+import { serverError } from "@/lib/server/apiError";
 
-function normalizeOrderId(input: string): string {
-  const trimmed = input.trim();
-  if (!trimmed) return "";
-  // Admin UI renders order id as ord_<raw>. For lookup we accept either:
-  //  - ord_XXXXXXXX
-  //  - XXXXXXXX
-  const upper = trimmed.toUpperCase();
-  if (upper.startsWith("ORD_")) return upper;
-  if (upper.startsWith("ORD")) return `ord_${upper.replace(/^ORD_?/i, "")}`;
-  return `ord_${upper}`;
+/** Reduce an order id to a comparable core: drop an optional `ord_` prefix and
+ *  lowercase, so display formats (uppercased, prefixed) and the stored value
+ *  (e.g. a raw lowercase UUID) match regardless of how it was generated. */
+function coreOrderId(input: string): string {
+  return input.trim().toLowerCase().replace(/^ord_/, "");
 }
 
 export async function GET(
@@ -19,9 +15,9 @@ export async function GET(
   { params }: { params: Promise<{ id: string }> | { id: string } },
 ) {
   const { id } = await params;
-  const orderId = normalizeOrderId(id);
+  const wanted = coreOrderId(id);
 
-  if (!orderId || orderId.length < 6) {
+  if (!wanted || wanted.length < 4) {
     return NextResponse.json({ error: "Invalid order id" }, { status: 400 });
   }
 
@@ -35,16 +31,19 @@ export async function GET(
     );
   }
 
-  const { data, error } = await supabaseAdmin
+  // Fetch this phone's orders and match the id by its core form, so the lookup
+  // works whether ids are stored as raw UUIDs or with an `ord_` prefix.
+  const { data: rows, error } = await supabaseAdmin
     .from("orders")
     .select("*")
-    .eq("id", orderId)
-    .eq("customer_phone", phone)
-    .maybeSingle();
+    .eq("customer_phone", phone);
 
   if (error) {
-    return NextResponse.json({ error: error.message }, { status: 500 });
+    return serverError(error);
   }
+  const data = (rows ?? []).find(
+    (row) => coreOrderId(String((row as { id?: string }).id ?? "")) === wanted,
+  );
   if (!data) {
     return NextResponse.json({ error: "Order not found" }, { status: 404 });
   }

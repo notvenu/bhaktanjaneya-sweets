@@ -3,6 +3,7 @@ import { supabaseAdmin } from "@/lib/supabase/server";
 import { issueToken } from "@/lib/server/auth";
 import { customerFromRow } from "@/lib/supabase/mappers";
 import { isMsg91Configured, verifyOtp as verifyMsg91Otp } from "@/lib/server/msg91";
+import { serverError } from "@/lib/server/apiError";
 
 export async function POST(req: Request) {
   const body = await req.json();
@@ -36,7 +37,7 @@ export async function POST(req: Request) {
       .order("created_at", { ascending: false })
       .limit(1)
       .maybeSingle();
-    if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+    if (error) return serverError(error);
     if (!data || new Date(data.expires_at) < new Date()) {
       return NextResponse.json({ error: "Invalid or expired code" }, { status: 400 });
     }
@@ -67,7 +68,7 @@ export async function POST(req: Request) {
     .eq("phone", phone)
     .limit(1)
     .maybeSingle();
-  if (customerError) return NextResponse.json({ error: customerError.message }, { status: 500 });
+  if (customerError) return serverError(customerError);
   let customer = existingCustomer;
 
   if (mode === "login" && !customer) {
@@ -96,7 +97,7 @@ export async function POST(req: Request) {
       .select("*")
       .limit(1)
       .maybeSingle();
-    if (upsertError) return NextResponse.json({ error: upsertError.message }, { status: 500 });
+    if (upsertError) return serverError(upsertError);
     customer = upserted;
   }
 

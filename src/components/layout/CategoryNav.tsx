@@ -2,8 +2,6 @@ import { getCategories } from "@/lib/api/categories";
 import { Container } from "@/components/ui/Container";
 import { CategoryRail } from "@/components/layout/CategoryRail";
 
-export const dynamic = "force-dynamic";
-
 export async function CategoryNav() {
   const categories = await getCategories();
   if (!categories.length) return null;

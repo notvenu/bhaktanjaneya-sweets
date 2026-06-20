@@ -10,8 +10,10 @@ import { getProducts } from "@/lib/api/products";
 import { getLiveGoogleReviews } from "@/lib/google-reviews";
 import { getLiveInstagramReels } from "@/lib/instagram-reels";
 
-export const dynamic = "force-dynamic";
-export const revalidate = 0;
+// Statically rendered and revalidated every 2 minutes (ISR). All data sources
+// below are individually cached, so the page no longer hits the DB or external
+// APIs on every visit.
+export const revalidate = 120;
 
 export default async function HomePage() {
   const [products, liveReviewsData, liveReels] = await Promise.all([

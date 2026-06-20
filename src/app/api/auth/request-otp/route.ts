@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import crypto from "crypto";
 import { supabaseAdmin } from "@/lib/supabase/server";
 import { isMsg91Configured, sendOtp, resendOtp } from "@/lib/server/msg91";
+import { serverError } from "@/lib/server/apiError";
 
 function genCode() {
   // Cryptographically secure 6-digit code (Math.random is predictable and
@@ -22,7 +23,7 @@ export async function POST(req: Request) {
     .eq("phone", phone)
     .limit(1)
     .maybeSingle();
-  if (customerError) return NextResponse.json({ error: customerError.message }, { status: 500 });
+  if (customerError) return serverError(customerError);
   if (mode === "login" && !customer) {
     return NextResponse.json({ error: "No account found. Please sign up first." }, { status: 404 });
   }
@@ -63,7 +64,7 @@ export async function POST(req: Request) {
   // return it only in development so OTP login still works on localhost.
   const code = genCode();
   const { error } = await supabaseAdmin.from("otps").insert({ phone, code, expires_at: expiresAt });
-  if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+  if (error) return serverError(error);
 
   const debug =
     process.env.OTP_DEBUG === "true" || process.env.NODE_ENV === "development";

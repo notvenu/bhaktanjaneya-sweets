@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { supabaseAdmin } from "@/lib/supabase/server";
 import { requireRole } from "@/lib/server/auth";
+import { serverError } from "@/lib/server/apiError";
 import { offerFromRow, orderFromRow, orderToRow, productFromRow } from "@/lib/supabase/mappers";
 import { isServiceableCity } from "@/lib/constants/serviceable-areas";
 import { variantLabel } from "@/lib/product";
@@ -127,7 +128,7 @@ export async function GET(req: Request) {
     .select("*")
     .eq("customer_phone", payload.phone ?? payload.sub)
     .order("created_at", { ascending: false });
-  if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+  if (error) return serverError(error);
   return NextResponse.json((data ?? []).map((row) => orderFromRow(row)));
 }
 
@@ -157,6 +158,22 @@ export async function POST(req: Request) {
   }
   if (!order.paymentMethod || !["razorpay", "cod"].includes(order.paymentMethod)) {
     return NextResponse.json({ error: "Payment method is required" }, { status: 400 });
+  }
+
+  // Lightweight anti-spam: cap how many orders a phone can place in a short
+  // window (this endpoint is open for guest checkout).
+  const phoneDigits = String(order.customerPhone).replace(/\D/g, "");
+  const since = new Date(Date.now() - 60 * 1000).toISOString();
+  const { count: recentOrders } = await supabaseAdmin
+    .from("orders")
+    .select("id", { count: "exact", head: true })
+    .eq("customer_phone", phoneDigits)
+    .gte("created_at", since);
+  if ((recentOrders ?? 0) >= 3) {
+    return NextResponse.json(
+      { error: "You've placed several orders in a row. Please wait a moment and try again." },
+      { status: 429 },
+    );
   }
 
   // Recompute money server-side; never trust client prices/totals.
@@ -199,10 +216,13 @@ export async function POST(req: Request) {
     const isPolicyError =
       error.code === "42501" ||
       /row-level security|permission denied|forbidden/i.test(error.message);
-    const message = isPolicyError
-      ? "We couldn't save your order right now. Please try again or contact us."
-      : error.message;
-    return NextResponse.json({ error: message }, { status: isPolicyError ? 403 : 500 });
+    if (isPolicyError) {
+      return NextResponse.json(
+        { error: "We couldn't save your order right now. Please try again or contact us." },
+        { status: 403 },
+      );
+    }
+    return serverError(error);
   }
 
   await supabaseAdmin.from("customers").upsert({
