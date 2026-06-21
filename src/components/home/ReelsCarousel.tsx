@@ -1,7 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
-import Image from "next/image";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { Heart, Play, ChevronLeft, ChevronRight } from "lucide-react";
 import type { InstagramReel } from "@/lib/instagram-reels";
 
@@ -44,6 +43,33 @@ export function ReelsCarousel({ reels }: { reels: InstagramReel[] }) {
     return () => clearTimeout(id);
   }, [active, reduced, paused, n, rotateClockwise]);
 
+  // Swipe / drag to switch reels. `swiped` guards the tap-through click so a
+  // swipe doesn't also open the front reel or select a back one.
+  const dragStartX = useRef<number | null>(null);
+  const swiped = useRef(false);
+
+  function onPointerDown(e: React.PointerEvent) {
+    dragStartX.current = e.clientX;
+    swiped.current = false;
+  }
+  function onPointerMove(e: React.PointerEvent) {
+    if (dragStartX.current !== null && Math.abs(e.clientX - dragStartX.current) > 8) {
+      swiped.current = true;
+    }
+  }
+  function onPointerUp(e: React.PointerEvent) {
+    if (dragStartX.current === null) return;
+    const dx = e.clientX - dragStartX.current;
+    dragStartX.current = null;
+    if (Math.abs(dx) > 40) {
+      if (dx < 0) rotateCounter();
+      else rotateClockwise();
+    }
+  }
+  function onPointerCancel() {
+    dragStartX.current = null;
+  }
+
   if (n === 0) return null;
 
   // Signed distance of reel i from the active one, in [-floor(n/2), …].
@@ -56,9 +82,13 @@ export function ReelsCarousel({ reels }: { reels: InstagramReel[] }) {
 
   return (
     <div
-      className="relative mx-auto flex h-[460px] w-full max-w-md items-center justify-center sm:h-[520px]"
+      className="relative mx-auto flex h-[460px] w-full max-w-md touch-pan-y select-none items-center justify-center sm:h-[520px]"
       onMouseEnter={() => setPaused(true)}
       onMouseLeave={() => setPaused(false)}
+      onPointerDown={onPointerDown}
+      onPointerMove={onPointerMove}
+      onPointerUp={onPointerUp}
+      onPointerCancel={onPointerCancel}
     >
       {reels.map((r, i) => {
         const d = offset(i);
@@ -66,12 +96,14 @@ export function ReelsCarousel({ reels }: { reels: InstagramReel[] }) {
         const isBack = d === -1 || d === 1;
         const visible = isCenter || isBack;
 
+        // Straight (no tilt): back reels are just offset to the sides, scaled
+        // down and dimmed.
         const transform = isCenter
-          ? "translateX(0) scale(1) rotate(0deg)"
+          ? "translateX(0) scale(1)"
           : d === -1
-            ? "translateX(-58%) scale(0.82) rotate(-5deg)"
+            ? "translateX(-58%) scale(0.82)"
             : d === 1
-              ? "translateX(58%) scale(0.82) rotate(5deg)"
+              ? "translateX(58%) scale(0.82)"
               : "translateX(0) scale(0.7)";
 
         return (
@@ -91,14 +123,18 @@ export function ReelsCarousel({ reels }: { reels: InstagramReel[] }) {
                 href={r.link}
                 target="_blank"
                 rel="noopener noreferrer"
+                onClick={(e) => {
+                  if (swiped.current) e.preventDefault();
+                }}
                 className="group relative block aspect-[9/16] w-full overflow-hidden rounded-3xl border border-cream-200 bg-black shadow-card"
               >
-                <Image
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img
                   src={r.thumbnail}
                   alt=""
-                  fill
-                  sizes="270px"
-                  className="object-cover transition-transform duration-500 group-hover:scale-[1.03]"
+                  referrerPolicy="no-referrer"
+                  loading="lazy"
+                  className="absolute inset-0 h-full w-full object-cover transition-transform duration-500 group-hover:scale-[1.03]"
                 />
                 <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/15 to-black/15" />
 
@@ -146,19 +182,23 @@ export function ReelsCarousel({ reels }: { reels: InstagramReel[] }) {
             ) : (
               <button
                 type="button"
-                onClick={() => setActive(i)}
+                onClick={() => {
+                  if (swiped.current) return;
+                  setActive(i);
+                }}
                 aria-label="Bring reel to front"
                 className="relative block aspect-[9/16] w-full overflow-hidden rounded-3xl border border-cream-200 bg-black shadow-soft"
               >
-                <Image
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img
                   src={r.thumbnail}
                   alt=""
-                  fill
-                  sizes="220px"
-                  className="object-cover"
+                  referrerPolicy="no-referrer"
+                  loading="lazy"
+                  className="absolute inset-0 h-full w-full object-cover"
                 />
                 {/* Dark tone for the back reels */}
-                <div className="absolute inset-0 bg-ink-900/60" />
+                <div className="absolute inset-0 bg-ink-900/70" />
               </button>
             )}
           </div>

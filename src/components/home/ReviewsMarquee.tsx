@@ -53,13 +53,19 @@ export function ReviewsMarquee({ reviews }: { reviews: GoogleReview[] }) {
 
   return (
     <>
-      {/* Auto-scrolling marquee of reviews (pauses on hover) */}
-      <div className="marquee-group relative mt-7 overflow-hidden [mask-image:linear-gradient(to_right,transparent,black_4%,black_96%,transparent)]">
-        <ul
-          className="flex w-max animate-marquee"
-          style={{ ["--marquee-duration" as string]: `${Math.max(24, reviews.length * 9)}s` }}
-        >
-          {[...reviews, ...reviews].map((r, idx) => {
+      {/* Auto-scrolling marquee — contained to the page content width so it
+          fades in line with the rest of the section; the list is repeated 4×
+          so one half always exceeds the container, keeping the loop seamless
+          with no empty gap on wide screens. */}
+      <div className="mx-auto mt-7 max-w-7xl px-4 sm:px-6 lg:px-8">
+        <div className="marquee-group relative overflow-hidden [mask-image:linear-gradient(to_right,transparent,black_6%,black_94%,transparent)]">
+          <ul
+            className="flex w-max animate-marquee"
+            style={{ ["--marquee-duration" as string]: `${Math.max(24, reviews.length * 9)}s` }}
+          >
+            {Array.from({ length: 4 })
+              .flatMap(() => reviews)
+              .map((r, idx) => {
             const isClone = idx >= reviews.length;
             const isLong = r.text.length > READ_MORE_THRESHOLD;
             return (
@@ -100,7 +106,8 @@ export function ReviewsMarquee({ reviews }: { reviews: GoogleReview[] }) {
               </li>
             );
           })}
-        </ul>
+          </ul>
+        </div>
       </div>
 
       {/* Full-review modal */}

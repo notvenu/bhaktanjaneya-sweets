@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import Image from "next/image";
-import { ChevronLeft, ChevronRight, LayoutGrid } from "lucide-react";
+import { ChevronLeft, ChevronRight } from "lucide-react";
 import { useCallback, useEffect, useRef, useState } from "react";
 
 import { getCategoryImage } from "@/lib/images";
@@ -60,20 +60,6 @@ export function CategoryRail({ categories }: { categories: Category[] }) {
         className="flex snap-x scroll-px-1 items-start gap-x-5 overflow-x-auto px-1 pb-2 sm:gap-x-8 md:justify-center md:gap-x-10 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
         data-cat-scroll
       >
-        {/* Shop All — always first */}
-        <Link
-          href="/shop"
-          aria-label="Shop All"
-          className="group flex w-[76px] shrink-0 snap-start flex-col items-center sm:w-[92px]"
-        >
-          <div className="flex h-[76px] w-[76px] items-center justify-center rounded-full border border-maroon-800/15 bg-gradient-to-br from-maroon-800 to-maroon-900 text-saffron-300 shadow-sm transition-transform duration-200 group-hover:scale-[1.03] sm:h-[92px] sm:w-[92px]">
-            <LayoutGrid size={30} strokeWidth={1.75} />
-          </div>
-          <span className="mt-2.5 line-clamp-2 h-[2.2rem] text-center text-[11px] font-semibold leading-snug tracking-tight text-maroon-900 sm:text-xs">
-            Shop All
-          </span>
-        </Link>
-
         {categories.map((category) => (
           <Link
             key={category.id}
