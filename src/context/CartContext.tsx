@@ -11,6 +11,7 @@ import {
 import type { CartItem } from "@/lib/types";
 
 const STORAGE_KEY = "bas_cart";
+const NOTES_KEY = "bas_cart_notes";
 
 interface CartContextValue {
   items: CartItem[];
@@ -22,6 +23,9 @@ interface CartContextValue {
   clear: () => void;
   isOpen: boolean;
   setOpen: (open: boolean) => void;
+  /** Optional order notes, shared between the cart drawer and checkout. */
+  notes: string;
+  setNotes: (notes: string) => void;
 }
 
 const CartContext = createContext<CartContextValue | null>(null);
@@ -29,6 +33,7 @@ const CartContext = createContext<CartContextValue | null>(null);
 export function CartProvider({ children }: { children: React.ReactNode }) {
   const [items, setItems] = useState<CartItem[]>([]);
   const [isOpen, setOpen] = useState(false);
+  const [notes, setNotesState] = useState("");
   const [hydrated, setHydrated] = useState(false);
 
   useEffect(() => {
@@ -37,6 +42,8 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
       // Hydration: intentionally setting state from localStorage
       // eslint-disable-next-line react-hooks/set-state-in-effect
       if (raw) setItems(JSON.parse(raw) as CartItem[]);
+      const savedNotes = window.localStorage.getItem(NOTES_KEY);
+      if (savedNotes) setNotesState(savedNotes);
     } catch {
       /* ignore */
     }
@@ -46,6 +53,12 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     if (hydrated) window.localStorage.setItem(STORAGE_KEY, JSON.stringify(items));
   }, [items, hydrated]);
+
+  useEffect(() => {
+    if (hydrated) window.localStorage.setItem(NOTES_KEY, notes);
+  }, [notes, hydrated]);
+
+  const setNotes = useCallback((next: string) => setNotesState(next), []);
 
   const add = useCallback((item: CartItem) => {
     setItems((prev) => {
@@ -76,7 +89,10 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
     [],
   );
 
-  const clear = useCallback(() => setItems([]), []);
+  const clear = useCallback(() => {
+    setItems([]);
+    setNotesState("");
+  }, []);
 
   const count = useMemo(
     () => items.reduce((s, x) => s + x.quantity, 0),
@@ -88,8 +104,8 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
   );
 
   const value = useMemo(
-    () => ({ items, count, subtotal, add, remove, setQty, clear, isOpen, setOpen }),
-    [items, count, subtotal, add, remove, setQty, clear, isOpen],
+    () => ({ items, count, subtotal, add, remove, setQty, clear, isOpen, setOpen, notes, setNotes }),
+    [items, count, subtotal, add, remove, setQty, clear, isOpen, notes, setNotes],
   );
 
   return <CartContext.Provider value={value}>{children}</CartContext.Provider>;

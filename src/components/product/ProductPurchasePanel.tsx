@@ -1,14 +1,15 @@
 "use client";
 
 import { useState } from "react";
-import { Minus, Plus, ShoppingBag, MessageCircle, Check } from "lucide-react";
+import { useRouter } from "next/navigation";
+import { Minus, Plus, ShoppingBag, Zap, Check } from "lucide-react";
 import type { Product } from "@/lib/types";
 import { useCart } from "@/context/CartContext";
 import { toCartItem, variantLabel } from "@/lib/product";
-import { waLink, productEnquiryMessage } from "@/lib/whatsapp";
 import { formatINR, cn, discountPct } from "@/lib/utils";
 
 export function ProductPurchasePanel({ product }: { product: Product }) {
+  const router = useRouter();
   const { add, setOpen } = useCart();
   const variants = Array.isArray(product.variants) ? product.variants : [];
   const sorted = [...variants].sort((a, b) => a.price - b.price);
@@ -34,12 +35,12 @@ export function ProductPurchasePanel({ product }: { product: Product }) {
     setTimeout(() => setAdded(false), 1500);
   }
 
-  const variantText = variantLabel(variant);
-  const waMessage = productEnquiryMessage(
-    product.name,
-    qty > 1 ? `${variantText} x${qty}` : variantText,
-    variant.price * qty,
-  );
+  function buyNow() {
+    if (out) return;
+    add(toCartItem(product, variant, qty));
+    setOpen(false);
+    router.push("/cart");
+  }
 
   const stepBtn =
     "flex h-10 w-10 items-center justify-center text-maroon-800 transition-colors hover:bg-maroon-800/5 disabled:opacity-40";
@@ -170,14 +171,14 @@ export function ProductPurchasePanel({ product }: { product: Product }) {
             </>
           )}
         </button>
-        <a
-          href={waLink(waMessage)}
-          target="_blank"
-          rel="noopener noreferrer"
-          className="inline-flex h-14 w-full items-center justify-center gap-2.5 rounded-full bg-[#25D366] text-base font-semibold text-white shadow-soft transition-colors hover:bg-[#1fb457]"
+        <button
+          type="button"
+          disabled={out}
+          onClick={buyNow}
+          className="inline-flex h-14 w-full items-center justify-center gap-2.5 rounded-full bg-saffron-500 text-base font-semibold text-maroon-900 shadow-soft transition-colors hover:bg-saffron-400 disabled:cursor-not-allowed disabled:opacity-50"
         >
-          <MessageCircle size={20} /> Order on WhatsApp
-        </a>
+          <Zap size={20} /> Buy now
+        </button>
       </div>
 
       <button

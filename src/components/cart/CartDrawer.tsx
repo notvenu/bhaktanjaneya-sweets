@@ -1,16 +1,44 @@
 "use client";
 
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import Image from "next/image";
-import { X, Minus, Plus, Trash2, ShoppingBag, ArrowRight } from "lucide-react";
+import {
+  X,
+  Minus,
+  Plus,
+  Trash2,
+  ShoppingBag,
+  Truck,
+  ChevronDown,
+} from "lucide-react";
 import { useCart } from "@/context/CartContext";
 import { config } from "@/lib/config";
 import { formatINR, cn } from "@/lib/utils";
-import { defaultProductImage } from "@/lib/images";
+import { defaultProductImage, getProductImage } from "@/lib/images";
+import { apiGet } from "@/lib/api/client";
+import { defaultVariant, toCartItem, priceRange } from "@/lib/product";
+import type { Product } from "@/lib/types";
+
+// Fetch the catalogue once and share it across opens.
+let productCache: Product[] | null = null;
 
 export function CartDrawer() {
-  const { items, count, subtotal, setQty, remove, isOpen, setOpen } = useCart();
+  const {
+    items,
+    count,
+    subtotal,
+    setQty,
+    remove,
+    add,
+    isOpen,
+    setOpen,
+    notes,
+    setNotes,
+  } = useCart();
+
+  const [products, setProducts] = useState<Product[]>(productCache ?? []);
+  const [notesOpen, setNotesOpen] = useState(false);
 
   useEffect(() => {
     document.body.style.overflow = isOpen ? "hidden" : "";
@@ -19,8 +47,30 @@ export function CartDrawer() {
     };
   }, [isOpen]);
 
+  // Load products the first time the drawer opens (for recommendations).
+  useEffect(() => {
+    if (productCache || !isOpen) return;
+    let alive = true;
+    apiGet<Product[]>("/products")
+      .then((p) => {
+        productCache = p;
+        if (alive) setProducts(p);
+      })
+      .catch(() => {});
+    return () => {
+      alive = false;
+    };
+  }, [isOpen]);
+
   const remaining = Math.max(0, config.freeShippingThreshold - subtotal);
   const progress = Math.min(100, (subtotal / config.freeShippingThreshold) * 100);
+
+  const inCart = new Set(items.map((i) => i.productId));
+  const recommendations = products.filter((p) => !inCart.has(p.id)).slice(0, 6);
+
+  function addRecommendation(p: Product) {
+    add(toCartItem(p, defaultVariant(p)));
+  }
 
   return (
     <div
@@ -86,22 +136,34 @@ export function CartDrawer() {
             <div className="flex-1 overflow-y-auto px-5 py-4">
               {/* Free shipping progress */}
               <div className="mb-4 rounded-xl bg-cream-100 p-3">
-                {remaining > 0 ? (
-                  <p className="text-xs text-ink-600">
-                    Add{" "}
-                    <span className="font-semibold text-maroon-800">
-                      {formatINR(remaining)}
-                    </span>{" "}
-                    more for free shipping
-                  </p>
-                ) : (
-                  <p className="text-xs font-semibold text-leaf-600">
-                    🎉 You&apos;ve unlocked free shipping!
-                  </p>
-                )}
+                <div className="flex items-center justify-between gap-2">
+                  {remaining > 0 ? (
+                    <p className="text-xs text-ink-600">
+                      Add{" "}
+                      <span className="font-semibold text-maroon-800">
+                        {formatINR(remaining)}
+                      </span>{" "}
+                      more for free shipping
+                    </p>
+                  ) : (
+                    <p className="text-xs font-semibold text-leaf-600">
+                      🎉 You&apos;ve unlocked free shipping!
+                    </p>
+                  )}
+                  <Truck
+                    size={16}
+                    className={cn(
+                      "shrink-0",
+                      remaining > 0 ? "text-ink-400" : "text-leaf-600",
+                    )}
+                  />
+                </div>
                 <div className="mt-2 h-1.5 overflow-hidden rounded-full bg-cream-300">
                   <div
-                    className="h-full rounded-full bg-saffron-500 transition-all"
+                    className={cn(
+                      "h-full rounded-full transition-all",
+                      remaining > 0 ? "bg-saffron-500" : "bg-leaf-500",
+                    )}
                     style={{ width: `${progress}%` }}
                   />
                 </div>
@@ -172,29 +234,118 @@ export function CartDrawer() {
                   </li>
                 ))}
               </ul>
+
+              {/* Customers also like */}
+              {recommendations.length > 0 && (
+                <div className="mt-6">
+                  <p className="mb-2.5 font-serif text-sm font-bold text-maroon-900">
+                    Customers also like
+                  </p>
+                  <div className="no-scrollbar -mx-1 flex gap-3 overflow-x-auto px-1 pb-1">
+                    {recommendations.map((p) => {
+                      const { min, hasRange } = priceRange(p);
+                      return (
+                        <div
+                          key={p.id}
+                          className="flex w-36 shrink-0 flex-col rounded-xl border border-cream-200 bg-white p-2"
+                        >
+                          <Link
+                            href={`/product/${p.slug}`}
+                            onClick={() => setOpen(false)}
+                            className="relative aspect-square overflow-hidden rounded-lg bg-cream-100"
+                          >
+                            <Image
+                              src={getProductImage(p)}
+                              alt={p.name}
+                              fill
+                              sizes="144px"
+                              className="object-cover"
+                            />
+                          </Link>
+                          <p className="mt-2 line-clamp-1 text-xs font-medium text-maroon-900">
+                            {p.name}
+                          </p>
+                          <p className="mt-0.5 text-xs text-ink-500">
+                            {hasRange ? "from " : ""}
+                            {formatINR(min)}
+                          </p>
+                          <button
+                            type="button"
+                            onClick={() => addRecommendation(p)}
+                            className="mt-2 inline-flex h-8 w-full items-center justify-center gap-1 rounded-full bg-maroon-800 text-xs font-semibold text-cream-50 hover:bg-maroon-700"
+                          >
+                            <Plus size={13} /> Add
+                          </button>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
+
+              {/* Add order notes */}
+              <div className="mt-6 overflow-hidden rounded-xl border border-cream-200">
+                <button
+                  type="button"
+                  onClick={() => setNotesOpen((o) => !o)}
+                  className="flex w-full items-center justify-between px-4 py-3 text-sm font-medium text-maroon-900"
+                >
+                  <span>
+                    Add order notes
+                    {notes.trim() ? (
+                      <span className="ml-2 rounded-full bg-saffron-500/20 px-2 py-0.5 text-[10px] font-semibold text-saffron-700">
+                        Added
+                      </span>
+                    ) : null}
+                  </span>
+                  <ChevronDown
+                    size={18}
+                    className={cn(
+                      "shrink-0 text-ink-400 transition-transform",
+                      notesOpen && "rotate-180",
+                    )}
+                  />
+                </button>
+                {notesOpen && (
+                  <div className="px-4 pb-3">
+                    <textarea
+                      value={notes}
+                      onChange={(e) => setNotes(e.target.value)}
+                      rows={3}
+                      placeholder="Preferred delivery time, gift message, etc."
+                      className="w-full resize-none rounded-lg border border-cream-300 bg-white p-3 text-sm text-ink-900 placeholder:text-ink-400 focus:border-saffron-400 focus:outline-none focus:ring-2 focus:ring-saffron-400/30"
+                    />
+                  </div>
+                )}
+              </div>
             </div>
 
             <footer className="border-t border-cream-200 px-5 py-4">
-              <div className="mb-3 flex items-center justify-between">
+              <div className="mb-1 flex items-center justify-between">
                 <span className="text-sm text-ink-600">Subtotal</span>
                 <span className="text-lg font-bold text-maroon-900">
                   {formatINR(subtotal)}
                 </span>
               </div>
-              <Link
-                href="/cart"
-                onClick={() => setOpen(false)}
-                className="flex h-12 w-full items-center justify-center gap-2 rounded-full bg-maroon-800 text-sm font-semibold text-cream-50 hover:bg-maroon-700"
-              >
-                Checkout <ArrowRight size={18} />
-              </Link>
-              <Link
-                href="/shop"
-                onClick={() => setOpen(false)}
-                className="mt-2 flex h-11 w-full items-center justify-center rounded-full border border-maroon-800/30 text-sm font-semibold text-maroon-800 hover:bg-maroon-800/5"
-              >
-                Continue shopping
-              </Link>
+              <p className="mb-3 text-xs text-ink-400">
+                Taxes included. Shipping &amp; offers calculated at checkout.
+              </p>
+              <div className="grid grid-cols-2 gap-3">
+                <Link
+                  href="/cart"
+                  onClick={() => setOpen(false)}
+                  className="flex h-12 w-full items-center justify-center rounded-full border border-maroon-800/30 text-sm font-semibold text-maroon-800 hover:bg-maroon-800/5"
+                >
+                  View cart
+                </Link>
+                <Link
+                  href="/cart"
+                  onClick={() => setOpen(false)}
+                  className="flex h-12 w-full items-center justify-center rounded-full bg-maroon-800 text-sm font-semibold text-cream-50 hover:bg-maroon-700"
+                >
+                  Checkout
+                </Link>
+              </div>
             </footer>
           </>
         )}

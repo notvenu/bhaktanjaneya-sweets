@@ -52,7 +52,7 @@ function discountFor(offer: Offer | null, subtotal: number): number {
 }
 
 export default function CartPage() {
-  const { items, subtotal, setQty, remove, clear } = useCart();
+  const { items, subtotal, setQty, remove, clear, notes, setNotes } = useCart();
   const { customer, updateCustomer } = useAuth();
 
   const [offers, setOffers] = useState<Offer[]>([]);
@@ -69,7 +69,6 @@ export default function CartPage() {
   const [state, setState] = useState("");
   const [district, setDistrict] = useState("");
   const [pincode, setPincode] = useState("");
-  const [notes, setNotes] = useState("");
   const [saveAddress, setSaveAddress] = useState(true);
   const [addressMode, setAddressMode] = useState<"saved" | "new">("new");
   const [deliveryConfirmed, setDeliveryConfirmed] = useState(false);
