@@ -1,20 +1,13 @@
 "use client";
 
 import { useState } from "react";
-import { Plus, Trash2 } from "lucide-react";
+import { Plus, Trash2, Check, Star } from "lucide-react";
 import type { Category, Product, Variant } from "@/lib/types";
 import { defaultProductImage } from "@/lib/images";
 import { uid, betterSlugify } from "@/lib/utils";
+import { useAdmin } from "@/context/AdminContext";
 import { Field, inputClass, Toggle, Modal, AdminButton } from "./ui";
 import { ProductImagesEditor } from "./ProductImagesEditor";
-
-
-const TAGS: { value: string; label: string }[] = [
-  { value: "best-seller", label: "Best Seller" },
-  { value: "top-pick", label: "Top Pick" },
-  { value: "combo", label: "Combo" },
-  { value: "new", label: "New" },
-];
 
 type Draft = Omit<Product, "variants" | "images"> & {
   variants: Variant[];
@@ -28,6 +21,7 @@ function blankProduct(category: string): Draft {
     name: "",
     description: "",
     category,
+    categories: category ? [category] : [],
     images: [""],
     variants: [{ id: uid("var"), label: "", price: 0, stock: 0 }],
     tags: [],
@@ -49,11 +43,18 @@ export function ProductEditor({
   onSave: (p: Product) => void;
   onClose: () => void;
 }) {
+  const { tags: allTags } = useAdmin();
   const isNew = !product;
   const [draft, setDraft] = useState<Draft>(
     product
       ? {
           ...product,
+          categories:
+            product.categories?.length
+              ? [...product.categories]
+              : product.category
+                ? [product.category]
+                : [],
           images: product.images.length ? [...product.images] : [""],
           variants: product.variants.map((v) => ({ ...v })),
           badges: product.badges ? [...product.badges] : [],
@@ -82,6 +83,23 @@ export function ProductEditor({
     }));
   }
 
+  function toggleCategory(slug: string) {
+    setDraft((d) => ({
+      ...d,
+      categories: d.categories.includes(slug)
+        ? d.categories.filter((c) => c !== slug)
+        : [...d.categories, slug],
+    }));
+  }
+
+  /** Move a selected category to the front so it becomes the primary one. */
+  function setPrimaryCategory(slug: string) {
+    setDraft((d) => ({
+      ...d,
+      categories: [slug, ...d.categories.filter((c) => c !== slug)],
+    }));
+  }
+
   function save() {
     const name = draft.name.trim();
     if (!name) return setError("Product name is required.");
@@ -99,8 +117,15 @@ export function ProductEditor({
     if (variants.length === 0)
       return setError("Add at least one variant with a label and price.");
 
+    const selectedCategories = draft.categories.filter(Boolean);
+    if (selectedCategories.length === 0)
+      return setError("Select at least one category.");
+
     const images = draft.images.map((s) => s.trim()).filter(Boolean);
-    const category = categories.find((c) => c.slug === draft.category);
+    // The first selected category is the "primary" one — drives the breadcrumb,
+    // default artwork, and the legacy single-category column.
+    const primarySlug = selectedCategories[0];
+    const primary = categories.find((c) => c.slug === primarySlug);
 
     onSave({
       ...draft,
@@ -108,8 +133,10 @@ export function ProductEditor({
       slug: (draft.slug.trim() ? betterSlugify(draft.slug) : betterSlugify(name)),
 
       description: draft.description.trim(),
-      categoryLabel: category?.name,
-      images: images.length ? images : [defaultProductImage(draft.category)],
+      category: primarySlug,
+      categories: selectedCategories,
+      categoryLabel: primary?.name,
+      images: images.length ? images : [defaultProductImage(primarySlug)],
       variants,
       rating: Number(draft.rating) || 0,
       reviewCount: Number(draft.reviewCount) || 0,
@@ -160,28 +187,80 @@ export function ProductEditor({
           </Field>
         </div>
 
-        <div className="grid gap-4 sm:grid-cols-2">
-          <Field label="Category">
-            <select
-              className={inputClass}
-              value={draft.category}
-              onChange={(e) => set("category", e.target.value)}
-            >
-              {categories.map((c) => (
-                <option key={c.id} value={c.slug}>
-                  {c.name}
-                </option>
-              ))}
-            </select>
-          </Field>
-          <div className="flex items-end pb-1">
-            <Toggle
-              checked={draft.active}
-              onChange={(v) => set("active", v)}
-              label={draft.active ? "Active (visible)" : "Hidden"}
-            />
+        {/* Categories — multi-select with a primary picker */}
+        <div className="rounded-xl border border-cream-200 bg-cream-50/50 p-4">
+          <div className="mb-2 flex items-center justify-between gap-2">
+            <p className="text-xs font-semibold text-ink-600">Categories</p>
+            <span className="text-[11px] text-ink-400">
+              {draft.categories.length} selected
+            </span>
           </div>
+          <p className="mb-3 text-xs text-ink-400">
+            A product can live in several categories. Tap to add or remove.
+          </p>
+
+          <div className="flex flex-wrap gap-2">
+            {categories.map((c) => {
+              const idx = draft.categories.indexOf(c.slug);
+              const on = idx !== -1;
+              return (
+                <button
+                  key={c.id}
+                  type="button"
+                  onClick={() => toggleCategory(c.slug)}
+                  aria-pressed={on}
+                  className={
+                    on
+                      ? "inline-flex items-center gap-1.5 rounded-full bg-maroon-800 px-3 py-1.5 text-xs font-medium text-cream-50 ring-2 ring-maroon-800/20"
+                      : "inline-flex items-center gap-1.5 rounded-full border border-cream-300 bg-white px-3 py-1.5 text-xs font-medium text-ink-600 hover:border-maroon-300 hover:bg-cream-100"
+                  }
+                >
+                  {on ? <Check size={13} /> : <Plus size={13} />}
+                  {c.name}
+                </button>
+              );
+            })}
+          </div>
+
+          {draft.categories.length > 1 ? (
+            <div className="mt-4 border-t border-cream-200 pt-3">
+              <p className="mb-2 flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-wide text-ink-500">
+                <Star size={12} className="fill-saffron-400 text-saffron-400" />
+                Primary category
+              </p>
+              <div className="flex flex-wrap gap-2">
+                {draft.categories.map((slug, i) => {
+                  const cat = categories.find((c) => c.slug === slug);
+                  const isPrimary = i === 0;
+                  return (
+                    <button
+                      key={slug}
+                      type="button"
+                      onClick={() => setPrimaryCategory(slug)}
+                      className={
+                        isPrimary
+                          ? "inline-flex items-center gap-1.5 rounded-full bg-saffron-400 px-3 py-1.5 text-xs font-semibold text-maroon-900"
+                          : "inline-flex items-center gap-1.5 rounded-full border border-cream-300 bg-white px-3 py-1.5 text-xs font-medium text-ink-500 hover:bg-cream-100"
+                      }
+                    >
+                      {isPrimary ? <Star size={12} className="fill-maroon-900" /> : null}
+                      {cat?.name ?? slug}
+                    </button>
+                  );
+                })}
+              </div>
+              <p className="mt-2 text-[11px] text-ink-400">
+                Drives the breadcrumb, related products, and default image.
+              </p>
+            </div>
+          ) : null}
         </div>
+
+        <Toggle
+          checked={draft.active}
+          onChange={(v) => set("active", v)}
+          label={draft.active ? "Active (visible)" : "Hidden"}
+        />
 
         <Field label="Description">
           <textarea
@@ -335,25 +414,31 @@ export function ProductEditor({
         <div className="grid gap-4 sm:grid-cols-2">
           <div>
             <p className="mb-2 text-xs font-semibold text-ink-600">Tags</p>
-            <div className="flex flex-wrap gap-2">
-              {TAGS.map((t) => {
-                const on = draft.tags.includes(t.value);
-                return (
-                  <button
-                    key={t.value}
-                    type="button"
-                    onClick={() => toggleTag(t.value)}
-                    className={
-                      on
-                        ? "rounded-full bg-maroon-800 px-3 py-1.5 text-xs font-medium text-cream-50"
-                        : "rounded-full border border-cream-300 px-3 py-1.5 text-xs font-medium text-ink-600 hover:bg-cream-100"
-                    }
-                  >
-                    {t.label}
-                  </button>
-                );
-              })}
-            </div>
+            {allTags.length === 0 ? (
+              <p className="text-xs text-ink-400">
+                No tags yet. Create them in Categories &amp; Tags.
+              </p>
+            ) : (
+              <div className="flex flex-wrap gap-2">
+                {allTags.map((t) => {
+                  const on = draft.tags.includes(t.slug);
+                  return (
+                    <button
+                      key={t.id}
+                      type="button"
+                      onClick={() => toggleTag(t.slug)}
+                      className={
+                        on
+                          ? "rounded-full bg-maroon-800 px-3 py-1.5 text-xs font-medium text-cream-50"
+                          : "rounded-full border border-cream-300 px-3 py-1.5 text-xs font-medium text-ink-600 hover:bg-cream-100"
+                      }
+                    >
+                      {t.name}
+                    </button>
+                  );
+                })}
+              </div>
+            )}
           </div>
           <Field label="Badges" hint="Comma-separated, e.g. Pure Ghee, 100% Veg">
             <input

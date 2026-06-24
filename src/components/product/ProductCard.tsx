@@ -14,17 +14,11 @@ import {
   bestDiscountPct,
   toCartItem,
   variantLabel,
+  prettifyTag,
 } from "@/lib/product";
 import { getProductImage } from "@/lib/images";
 import { waLink, productEnquiryMessage } from "@/lib/whatsapp";
 import { formatINR, cn } from "@/lib/utils";
-
-const TAG_LABELS: Record<string, string> = {
-  "best-seller": "Best Seller",
-  "top-pick": "Top Pick",
-  new: "New",
-  combo: "Combo",
-};
 
 export function ProductCard({
   product,
@@ -40,7 +34,7 @@ export function ProductCard({
   const { min, hasRange } = priceRange(product);
   const available = inStock(product);
   const discount = bestDiscountPct(product);
-  const featureTag = (product.tags ?? []).find((t) => TAG_LABELS[t]);
+  const featureTag = (product.tags ?? [])[0];
   const href = `/product/${product.slug}`;
 
   function quickAdd() {
@@ -73,7 +67,7 @@ export function ProductCard({
           )}
           {featureTag && (
             <span className="rounded-full bg-saffron-400 px-2.5 py-1 text-xs font-semibold text-maroon-900">
-              {TAG_LABELS[featureTag]}
+              {prettifyTag(featureTag)}
             </span>
           )}
         </div>

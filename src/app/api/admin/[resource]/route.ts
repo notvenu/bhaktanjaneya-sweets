@@ -13,11 +13,14 @@ import {
   postToRow,
   productFromRow,
   productToRow,
+  tagFromRow,
+  tagToRow,
 } from "@/lib/supabase/mappers";
 
 type Resource =
   | "products"
   | "categories"
+  | "tags"
   | "offers"
   | "orders"
   | "customers"
@@ -31,6 +34,7 @@ type Resource =
 const ALLOWED_RESOURCES: readonly Resource[] = [
   "products",
   "categories",
+  "tags",
   "offers",
   "orders",
   "customers",
@@ -42,11 +46,12 @@ function isAllowed(resource: string): resource is Resource {
 }
 
 /** Resources whose slug must be unique + normalized on create. */
-const SLUGGED_RESOURCES: readonly Resource[] = ["categories", "products", "posts"];
+const SLUGGED_RESOURCES: readonly Resource[] = ["categories", "tags", "products", "posts"];
 
 function formatRows(resource: Resource, rows: Record<string, unknown>[]) {
   if (resource === "products") return rows.map(productFromRow);
   if (resource === "categories") return rows.map(categoryFromRow);
+  if (resource === "tags") return rows.map(tagFromRow);
   if (resource === "offers") return rows.map(offerFromRow);
   if (resource === "orders") return rows.map(orderFromRow);
   if (resource === "posts") return rows.map(postFromRow);
@@ -60,6 +65,7 @@ function formatRow(resource: Resource, row: Record<string, unknown>) {
 function payloadFor(resource: Resource, body: Record<string, unknown>) {
   if (resource === "products") return productToRow(body as never);
   if (resource === "categories") return categoryToRow(body as never);
+  if (resource === "tags") return tagToRow(body as never);
   if (resource === "offers") return offerToRow(body as never);
   if (resource === "orders") return orderToRow(body as never);
   if (resource === "posts") return postToRow(body as never);

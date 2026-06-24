@@ -1,10 +1,31 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import { Heart, Play, ChevronLeft, ChevronRight } from "lucide-react";
+import { Play, ChevronLeft, ChevronRight } from "lucide-react";
 import type { InstagramReel } from "@/lib/instagram-reels";
 
 const INTERVAL_MS = 5000;
+
+/**
+ * Local branded covers used when an Instagram CDN thumbnail fails to load
+ * (Instagram blocks hotlinking, so RSS thumbnail URLs often 403). Keeps the
+ * card from rendering as a black void.
+ */
+const FALLBACK_COVERS = [
+  "/images/tapeswaram_kaja_reel.png",
+  "/images/madatha_kaja_reel.png",
+  "/images/special_mixture_reel.png",
+  "/images/ghee_ladoo_reel.png",
+];
+
+function swapToFallback(index: number) {
+  return (e: React.SyntheticEvent<HTMLImageElement>) => {
+    const img = e.currentTarget;
+    if (img.dataset.fallback) return; // already swapped — avoid a loop
+    img.dataset.fallback = "1";
+    img.src = FALLBACK_COVERS[index % FALLBACK_COVERS.length];
+  };
+}
 
 /**
  * Coverflow-style reels carousel: one bright "playing" reel in front with the
@@ -134,6 +155,7 @@ export function ReelsCarousel({ reels }: { reels: InstagramReel[] }) {
                   alt=""
                   referrerPolicy="no-referrer"
                   loading="lazy"
+                  onError={swapToFallback(i)}
                   className="absolute inset-0 h-full w-full object-cover transition-transform duration-500 group-hover:scale-[1.03]"
                 />
                 <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/15 to-black/15" />
@@ -156,16 +178,6 @@ export function ReelsCarousel({ reels }: { reels: InstagramReel[] }) {
                   <p className="mt-2 line-clamp-2 text-xs font-medium leading-normal text-white/90">
                     {r.caption}
                   </p>
-                  <div className="mt-3 flex items-center justify-between border-t border-white/10 pt-2.5 text-[11px] font-semibold text-white/80">
-                    <span className="flex items-center gap-1">
-                      <Heart size={13} className="fill-white/80 text-transparent" />
-                      {r.likes}
-                    </span>
-                    <span className="flex items-center gap-1">
-                      <Play size={11} className="fill-white/80 text-transparent" />
-                      {r.views} views
-                    </span>
-                  </div>
                 </div>
 
                 {/* "Now playing" progress bar */}
@@ -195,6 +207,7 @@ export function ReelsCarousel({ reels }: { reels: InstagramReel[] }) {
                   alt=""
                   referrerPolicy="no-referrer"
                   loading="lazy"
+                  onError={swapToFallback(i)}
                   className="absolute inset-0 h-full w-full object-cover"
                 />
                 {/* Dark tone for the back reels */}

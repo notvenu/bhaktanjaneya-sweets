@@ -29,13 +29,27 @@ export async function getProductBySlug(slug: string): Promise<Product | null> {
 }
 
 export async function getProductsByCategory(category: string): Promise<Product[]> {
+  // Match either the legacy single category or the multi-category array.
   const { data, error } = await supabaseAdmin
     .from("products")
     .select("*")
     .eq("active", true)
-    .eq("category", category)
+    .or(`category.eq.${category},categories.cs.{${category}}`)
     .order("name", { ascending: true });
-  throwIfSupabaseError(error);
+
+  // The `categories` column is added by migration 010 and may not exist yet —
+  // fall back to the legacy single-category query so collections keep working.
+  if (error) {
+    const fallback = await supabaseAdmin
+      .from("products")
+      .select("*")
+      .eq("active", true)
+      .eq("category", category)
+      .order("name", { ascending: true });
+    throwIfSupabaseError(fallback.error);
+    return (fallback.data ?? []).map((row) => productFromRow(row));
+  }
+
   return (data ?? []).map((row) => productFromRow(row));
 }
 

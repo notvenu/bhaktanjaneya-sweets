@@ -1,4 +1,4 @@
-import type { Category, Customer, Offer, Order, Post, Product, Variant } from "@/lib/types";
+import type { Category, Customer, Offer, Order, Post, Product, Tag, Variant } from "@/lib/types";
 import { betterSlugify } from "@/lib/utils";
 
 type Row = Record<string, unknown>;
@@ -68,8 +68,16 @@ function normalizeVariant(raw: unknown, index: number, slug: string): Variant {
 export function productFromRow(row: Row): Product {
   const slug = (row.slug as string | undefined) ?? "variant";
   const rawVariants = Array.isArray(row.variants) ? row.variants : [];
+  const category = (row.category as string | null | undefined) ?? "";
+  // Prefer the multi-category array; fall back to the legacy single category so
+  // rows not yet backfilled still surface in collections.
+  const categories = optionalStringArray(row.categories);
+  const resolvedCategories =
+    categories.length > 0 ? categories : category ? [category] : [];
   return {
     ...(row as unknown as Product),
+    category: category || resolvedCategories[0] || "",
+    categories: resolvedCategories,
     categoryLabel: (row.category_label as string | null | undefined) ?? (row as unknown as Product).categoryLabel,
     images: optionalStringArray(row.images),
     variants: rawVariants.map((v, i) => normalizeVariant(v, i, slug)),
@@ -82,9 +90,18 @@ export function productFromRow(row: Row): Product {
 }
 
 export function productToRow(product: Product): Row {
-  const { categoryLabel, reviewCount, ...rest } = product;
+  const { categoryLabel, reviewCount, categories, category, ...rest } = product;
+  // Keep the array as the source of truth and mirror its first entry into the
+  // legacy single-category column so older code paths keep working.
+  const list = Array.isArray(categories) && categories.length
+    ? categories
+    : category
+      ? [category]
+      : [];
   return {
     ...rest,
+    category: list[0] ?? category ?? null,
+    categories: list,
     category_label: categoryLabel ?? null,
     review_count: reviewCount,
   };
@@ -103,6 +120,24 @@ export function categoryToRow(category: Category): Row {
   return {
     ...rest,
     sort_order: order ?? null,
+  };
+}
+
+export function tagFromRow(row: Row): Tag {
+  const { sort_order, ...rest } = row;
+  return {
+    ...(rest as unknown as Tag),
+    featured: row.featured === true,
+    order: (sort_order as number | null | undefined) ?? undefined,
+  };
+}
+
+export function tagToRow(tag: Tag): Row {
+  const { order, featured, ...rest } = tag;
+  return {
+    ...rest,
+    featured: featured ?? false,
+    sort_order: order ?? 99,
   };
 }
 

@@ -29,7 +29,9 @@ export default function AdminProductsPage() {
     return products.filter(
       (p) =>
         p.name.toLowerCase().includes(q) ||
-        p.category.toLowerCase().includes(q),
+        (p.categories ?? [p.category]).some((c) =>
+          c.toLowerCase().includes(q),
+        ),
     );
   }, [products, query]);
 

@@ -26,8 +26,13 @@ export interface Product {
   slug: string;
   name: string;
   description: string;
-  /** Category slug, e.g. "sweets" | "namkeen". */
+  /**
+   * Primary category slug, e.g. "sweets" | "namkeen". Kept for breadcrumbs,
+   * default artwork, and backward compatibility — mirrors `categories[0]`.
+   */
   category: string;
+  /** All category slugs this product belongs to. A product can live in many. */
+  categories: string[];
   categoryLabel?: string;
   /** Image URLs. Placeholders today; real photos uploaded via admin later. */
   images: string[];
@@ -47,6 +52,15 @@ export interface Category {
   name: string;
   description?: string;
   image?: string;
+  order?: number;
+}
+
+export interface Tag {
+  id: string;
+  slug: string;
+  name: string;
+  /** When true, the tag gets its own carousel on the home page. */
+  featured?: boolean;
   order?: number;
 }
 

@@ -12,14 +12,17 @@ import {
   postToRow,
   productFromRow,
   productToRow,
+  tagFromRow,
+  tagToRow,
 } from "@/lib/supabase/mappers";
 
-type Resource = "products" | "categories" | "offers" | "orders" | "posts";
+type Resource = "products" | "categories" | "tags" | "offers" | "orders" | "posts";
 
 /** Allowlist — prevents the `[resource]` segment from targeting arbitrary tables. */
 const ALLOWED_RESOURCES: readonly Resource[] = [
   "products",
   "categories",
+  "tags",
   "offers",
   "orders",
   "posts",
@@ -32,6 +35,7 @@ function isAllowed(resource: string): resource is Resource {
 function payloadFor(resource: Resource, body: Record<string, unknown>) {
   if (resource === "products") return productToRow(body as never);
   if (resource === "categories") return categoryToRow(body as never);
+  if (resource === "tags") return tagToRow(body as never);
   if (resource === "offers") return offerToRow(body as never);
   if (resource === "orders") return orderToRow(body as never);
   if (resource === "posts") return postToRow(body as never);
@@ -41,6 +45,7 @@ function payloadFor(resource: Resource, body: Record<string, unknown>) {
 function formatRow(resource: Resource, row: Record<string, unknown>) {
   if (resource === "products") return productFromRow(row);
   if (resource === "categories") return categoryFromRow(row);
+  if (resource === "tags") return tagFromRow(row);
   if (resource === "offers") return offerFromRow(row);
   if (resource === "orders") return orderFromRow(row);
   if (resource === "posts") return postFromRow(row);

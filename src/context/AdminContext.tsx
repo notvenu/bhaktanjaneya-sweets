@@ -16,6 +16,7 @@ import type {
   OrderStatus,
   Post,
   Product,
+  Tag,
 } from "@/lib/types";
 import { adminLogin, type AdminSession } from "@/lib/api/adminAuth";
 import { apiDelete, apiGet, apiPatch, apiPost, apiPut } from "@/lib/api/client";
@@ -40,6 +41,7 @@ interface AdminContextValue {
 
   products: Product[];
   categories: Category[];
+  tags: Tag[];
   offers: Offer[];
   orders: Order[];
   customers: Customer[];
@@ -49,6 +51,8 @@ interface AdminContextValue {
   deleteProduct: (id: string) => void;
   saveCategory: (category: Category) => void;
   deleteCategory: (id: string) => void;
+  saveTag: (tag: Tag) => void;
+  deleteTag: (id: string) => void;
   saveOffer: (offer: Offer) => void;
   deleteOffer: (id: string) => void;
   savePost: (post: Post) => void;
@@ -71,6 +75,7 @@ export function AdminProvider({ children }: { children: React.ReactNode }) {
 
   const [products, setProducts] = useState<Product[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
+  const [tags, setTags] = useState<Tag[]>([]);
   const [offers, setOffers] = useState<Offer[]>([]);
   const [orders, setOrders] = useState<Order[]>([]);
   const [customers, setCustomers] = useState<Customer[]>([]);
@@ -97,30 +102,43 @@ export function AdminProvider({ children }: { children: React.ReactNode }) {
       setOrders([]);
       setCustomers([]);
     }
-    // Posts live in their own table that may not be migrated yet — load
-    // separately so a missing table doesn't blank out the rest of the admin.
+    // Posts and tags live in their own tables that may not be migrated yet —
+    // load separately so a missing table doesn't blank out the rest of the admin.
     try {
       setPosts(await apiGet<Post[]>("/admin/posts"));
     } catch {
       setPosts([]);
     }
+    try {
+      setTags(await apiGet<Tag[]>("/admin/tags"));
+    } catch {
+      setTags([]);
+    }
   }, []);
 
   /* eslint-disable react-hooks/set-state-in-effect */
   useEffect(() => {
+    let restored = false;
     try {
       const raw = window.localStorage.getItem(SESSION_KEY);
       if (raw) {
         const parsed = JSON.parse(raw) as unknown;
-        if (isRealSession(parsed)) setSession(parsed);
-        else window.localStorage.removeItem(SESSION_KEY);
+        if (isRealSession(parsed)) {
+          setSession(parsed);
+          restored = true;
+        } else {
+          window.localStorage.removeItem(SESSION_KEY);
+        }
       }
     } catch {
       setSession(null);
       window.localStorage.removeItem(SESSION_KEY);
     }
     setHydrated(true);
-    void loadAll();
+    // Only fetch admin data when we actually have a session token to send.
+    // Otherwise every /admin/* GET 401s before the user has logged in — and
+    // login() runs loadAll() itself once authenticated.
+    if (restored) void loadAll();
   }, [loadAll]);
   /* eslint-enable react-hooks/set-state-in-effect */
 
@@ -170,6 +188,22 @@ export function AdminProvider({ children }: { children: React.ReactNode }) {
   const deleteCategory = useCallback((id: string) => {
     void apiDelete<void>(`/admin/categories/${id}`).then(() => {
       setCategories((prev) => prev.filter((c) => c.id !== id));
+    });
+  }, []);
+
+  const saveTag = useCallback((tag: Tag) => {
+    void (async () => {
+      const exists = tags.some((t) => t.id === tag.id);
+      const next = exists
+        ? await apiPut<Tag>(`/admin/tags/${tag.id}`, tag)
+        : await apiPost<Tag>("/admin/tags", tag);
+      setTags((prev) => (exists ? prev.map((t) => (t.id === next.id ? next : t)) : [...prev, next]));
+    })();
+  }, [tags]);
+
+  const deleteTag = useCallback((id: string) => {
+    void apiDelete<void>(`/admin/tags/${id}`).then(() => {
+      setTags((prev) => prev.filter((t) => t.id !== id));
     });
   }, []);
 
@@ -240,6 +274,7 @@ export function AdminProvider({ children }: { children: React.ReactNode }) {
       logout,
       products,
       categories,
+      tags,
       offers,
       orders,
       customers,
@@ -248,6 +283,8 @@ export function AdminProvider({ children }: { children: React.ReactNode }) {
       deleteProduct,
       saveCategory,
       deleteCategory,
+      saveTag,
+      deleteTag,
       saveOffer,
       deleteOffer,
       savePost,
@@ -264,6 +301,7 @@ export function AdminProvider({ children }: { children: React.ReactNode }) {
       logout,
       products,
       categories,
+      tags,
       offers,
       orders,
       customers,
@@ -272,6 +310,8 @@ export function AdminProvider({ children }: { children: React.ReactNode }) {
       deleteProduct,
       saveCategory,
       deleteCategory,
+      saveTag,
+      deleteTag,
       saveOffer,
       deleteOffer,
       savePost,

@@ -6,6 +6,14 @@ function variantsOf(p: Product): Variant[] {
   return Array.isArray(p.variants) ? p.variants : [];
 }
 
+/** Turn a tag slug into a human label, e.g. "best-seller" -> "Best Seller". */
+export function prettifyTag(slug: string): string {
+  return slug
+    .replace(/[-_]+/g, " ")
+    .replace(/\b\w/g, (c) => c.toUpperCase())
+    .trim();
+}
+
 /** Tags as a guaranteed array — guards against null/undefined from the API. */
 function tagsOf(p: Product): string[] {
   return Array.isArray(p.tags) ? p.tags : [];

@@ -40,11 +40,12 @@ interface Product {
   slug: string;            // URL key, unique
   name: string;
   description: string;
-  category: string;        // category slug
+  category: string;        // primary category slug (mirrors categories[0])
+  categories: string[];    // all category slugs the product belongs to
   categoryLabel?: string;  // display name (denormalized)
   images: string[];        // URLs
   variants: Variant[];
-  tags: string[];          // "best-seller" | "top-pick" | "combo" | "new"
+  tags: string[];          // managed tag slugs, e.g. "best-seller", "top-pick"
   rating: number;          // 0–5
   reviewCount: number;
   active: boolean;         // hidden from storefront when false
@@ -59,6 +60,14 @@ interface Category {
   name: string;
   description?: string;
   image?: string;
+  order?: number;          // sort order, ascending
+}
+
+interface Tag {
+  id: string;
+  slug: string;            // used in /shop?tag=:slug links
+  name: string;            // display label, e.g. "Best Sellers"
+  featured?: boolean;      // gets its own carousel on the home page
   order?: number;          // sort order, ascending
 }
 

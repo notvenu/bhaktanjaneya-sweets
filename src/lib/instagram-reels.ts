@@ -47,35 +47,96 @@ export const instagramReels: InstagramReel[] = [
  * the public Instagram profile URL — no Instagram account/login required).
  * Returns null if not configured or the request fails, so the caller can fall back.
  */
+const REELS_FALLBACK_LINK = "https://www.instagram.com/bhaktanjaneyasweets.in/reels/";
+
+/** Decode the handful of XML entities that appear in feed URLs/text. */
+function decodeXmlEntities(value: string): string {
+  return value
+    .replace(/&amp;/g, "&")
+    .replace(/&lt;/g, "<")
+    .replace(/&gt;/g, ">")
+    .replace(/&quot;/g, '"')
+    .replace(/&#39;/g, "'")
+    .replace(/&apos;/g, "'");
+}
+
+function stripCdata(value: string): string {
+  return value.replace(/^\s*<!\[CDATA\[/, "").replace(/\]\]>\s*$/, "").trim();
+}
+
+/** Parse an rss.app JSON Feed (the /v1.1/…json variant). */
+function parseJsonReels(body: string): InstagramReel[] {
+  let data: { items?: Array<Record<string, unknown>> };
+  try {
+    data = JSON.parse(body);
+  } catch {
+    return [];
+  }
+  const str = (v: unknown) => (typeof v === "string" ? v : "");
+  return (data?.items ?? [])
+    .map((item) => {
+      const caption = str(item.title || item.content_text || item.content_html)
+        .replace(/<[^>]*>/g, "")
+        .trim();
+      const attachments = item.attachments as Array<{ url?: string }> | undefined;
+      const thumbnail =
+        str(item.image) || str(item.banner_image) || str(attachments?.[0]?.url);
+      return {
+        id: String(item.id || item.url || caption),
+        thumbnail,
+        caption,
+        likes: "",
+        views: "",
+        link: str(item.url) || REELS_FALLBACK_LINK,
+      };
+    })
+    .filter((r) => r.thumbnail);
+}
+
+/** Parse an RSS 2.0 XML feed (the rss.app …xml variant). */
+function parseXmlReels(body: string): InstagramReel[] {
+  const items = body.match(/<item\b[\s\S]*?<\/item>/g) ?? [];
+  return items
+    .map((block) => {
+      const pick = (re: RegExp) => block.match(re)?.[1] ?? "";
+      const caption = stripCdata(pick(/<title>([\s\S]*?)<\/title>/))
+        .replace(/<[^>]*>/g, "")
+        .trim();
+      const link = stripCdata(pick(/<link>([\s\S]*?)<\/link>/)).trim();
+      const guid = stripCdata(pick(/<guid[^>]*>([\s\S]*?)<\/guid>/)).trim();
+
+      // Prefer the media:content cover; fall back to the first <img> in the body.
+      let thumbnail = block.match(/<media:content[^>]*\burl="([^"]+)"/)?.[1] ?? "";
+      if (!thumbnail) {
+        const description = stripCdata(pick(/<description>([\s\S]*?)<\/description>/));
+        thumbnail = description.match(/<img[^>]*\bsrc="([^"]+)"/)?.[1] ?? "";
+      }
+      thumbnail = decodeXmlEntities(thumbnail).trim();
+
+      return {
+        id: guid || link || caption,
+        thumbnail,
+        caption,
+        likes: "",
+        views: "",
+        link: link || REELS_FALLBACK_LINK,
+      };
+    })
+    .filter((r) => r.thumbnail);
+}
+
 export async function getRssReels(): Promise<InstagramReel[] | null> {
   const feedUrl = process.env.INSTAGRAM_RSS_URL;
   if (!feedUrl) return null;
 
   try {
     const res = await fetch(feedUrl, { cache: "no-store" });
-    const data = await res.json();
-    const items: any[] = data?.items ?? [];
+    const contentType = res.headers.get("content-type") ?? "";
+    const body = await res.text();
 
-    const reels: InstagramReel[] = items
-      .map((item) => {
-        const caption = (item.title || item.content_text || item.content_html || "")
-          .replace(/<[^>]*>/g, "") // strip any HTML tags
-          .trim();
-        const thumbnail =
-          item.image ||
-          item.banner_image ||
-          item.attachments?.[0]?.url ||
-          "";
-        return {
-          id: String(item.id || item.url || caption),
-          thumbnail,
-          caption,
-          likes: "View",
-          views: "Reel",
-          link: item.url || "https://www.instagram.com/bhaktanjaneyasweets.in/reels/",
-        };
-      })
-      .filter((r) => r.thumbnail); // need a cover image to show a card
+    // The feed can be JSON (/v1.1/…json) or RSS XML (…xml) — detect and parse.
+    const looksJson = contentType.includes("json") || /^\s*[[{]/.test(body);
+    const reels = looksJson ? parseJsonReels(body) : parseXmlReels(body);
 
     return reels.length ? reels : null;
   } catch (error) {
@@ -104,22 +165,27 @@ export async function getLiveInstagramReels() {
       next: { revalidate: 3600 }, // Cache Instagram reels server-side for 1 hour
     });
     
-    const data = await res.json();
+    const data = (await res.json()) as { data?: Array<Record<string, unknown>> };
     if (!data.data) {
       console.warn("Instagram API returned no media data:", data);
       return instagramReels;
     }
 
+    const str = (v: unknown) => (typeof v === "string" ? v : "");
+
     // Filter to only show video/reel posts and map them
     const mappedReels = data.data
-      .filter((item: any) => item.media_type === "VIDEO" || item.media_type === "CAROUSEL_ALBUM")
-      .map((item: any) => ({
-        id: item.id,
-        thumbnail: item.thumbnail_url || item.media_url,
-        caption: item.caption || "",
-        likes: "View", // Basic Display API has restricted permissions and doesn't return count directly
-        views: "Reel",
-        link: item.permalink,
+      .filter(
+        (item) =>
+          item.media_type === "VIDEO" || item.media_type === "CAROUSEL_ALBUM",
+      )
+      .map((item) => ({
+        id: str(item.id),
+        thumbnail: str(item.thumbnail_url) || str(item.media_url),
+        caption: str(item.caption),
+        likes: "", // Basic Display API doesn't return like/view counts
+        views: "",
+        link: str(item.permalink),
       }));
 
     return mappedReels.length ? mappedReels : instagramReels;

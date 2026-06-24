@@ -4,7 +4,7 @@ import { ProductGrid } from "@/components/product/ProductGrid";
 import { ShopControls } from "@/components/shop/ShopControls";
 import { getProducts } from "@/lib/api/products";
 import { getCategories } from "@/lib/api/categories";
-import { sortProducts } from "@/lib/product";
+import { sortProducts, prettifyTag } from "@/lib/product";
 
 export const metadata: Metadata = {
   title: "Shop All Sweets & Namkeen",
@@ -36,7 +36,10 @@ export default async function ShopPage(props: PageProps<"/shop">) {
   ]);
 
   let items = all;
-  if (category) items = items.filter((p) => p.category === category);
+  if (category)
+    items = items.filter((p) =>
+      (p.categories ?? [p.category]).includes(category),
+    );
   if (tag) items = items.filter((p) => p.tags.includes(tag));
   if (q) {
     const query = normalizeSearchQuery(q);
@@ -152,7 +155,7 @@ export default async function ShopPage(props: PageProps<"/shop">) {
   }
   items = sortProducts(items, sort);
 
-  const heading = tag && TAG_TITLES[tag] ? TAG_TITLES[tag] : "Shop All";
+  const heading = tag ? TAG_TITLES[tag] ?? prettifyTag(tag) : "Shop All";
   const categoryName = categories.find((c) => c.slug === category)?.name;
 
   return (
