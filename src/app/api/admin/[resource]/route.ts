@@ -1,7 +1,6 @@
 import { NextResponse, NextRequest } from "next/server";
 import { supabaseAdmin, isConfigured } from "@/lib/supabase/server";
 import { requireRole } from "@/lib/server/auth";
-import { MOCK_CATEGORIES, MOCK_PRODUCTS, MOCK_TAGS, MOCK_OFFERS, MOCK_POSTS } from "@/lib/mockData";
 import {
   categoryFromRow,
   categoryToRow,
@@ -78,14 +77,7 @@ export async function GET(req: NextRequest, { params }: { params: Promise<Record
   if (!isAllowed(p.resource)) return NextResponse.json({ error: "Not found" }, { status: 404 });
   const resource = p.resource;
 
-  if (!isConfigured) {
-    if (resource === "products") return NextResponse.json(MOCK_PRODUCTS);
-    if (resource === "categories") return NextResponse.json(MOCK_CATEGORIES);
-    if (resource === "tags") return NextResponse.json(MOCK_TAGS);
-    if (resource === "offers") return NextResponse.json(MOCK_OFFERS);
-    if (resource === "posts") return NextResponse.json(MOCK_POSTS);
-    return NextResponse.json([]);
-  }
+  if (!isConfigured) return NextResponse.json([]);
 
   const query = supabaseAdmin.from(resource).select("*");
   const { data, error } = resource === "orders" ? await query.order("created_at", { ascending: false }) : await query;

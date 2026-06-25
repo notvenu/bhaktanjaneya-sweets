@@ -44,11 +44,13 @@ create policy "public read tags" on tags for select using (true);
 
 -- Seed the default tag set (no-op if a slug already exists). `featured` marks
 -- the ones that surface as a carousel on the home page.
+-- At most two tags are featured by default — the home page renders one carousel
+-- per featured tag and caps the count at two.
 insert into tags (slug, name, featured, sort_order)
 values
   ('top-pick',    'Top Picks',   true,  1),
   ('best-seller', 'Best Sellers', true, 2),
-  ('our-picks',   'Our Picks',   true,  3),
+  ('our-picks',   'Our Picks',   false, 3),
   ('new',         'New Arrivals', false, 4),
   ('combo',       'Combos & Gifting', false, 5)
 on conflict (slug) do nothing;

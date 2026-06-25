@@ -1,12 +1,9 @@
 import { NextResponse } from "next/server";
 import { supabaseAdmin, isConfigured } from "@/lib/supabase/server";
 import { offerFromRow } from "@/lib/supabase/mappers";
-import { MOCK_OFFERS } from "@/lib/mockData";
 
 export async function GET() {
-  if (!isConfigured) {
-    return NextResponse.json(MOCK_OFFERS);
-  }
+  if (!isConfigured) return NextResponse.json([]);
   const { data, error } = await supabaseAdmin
     .from("offers")
     .select("*")

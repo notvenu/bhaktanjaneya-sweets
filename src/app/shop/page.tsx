@@ -4,19 +4,13 @@ import { ProductGrid } from "@/components/product/ProductGrid";
 import { ShopControls } from "@/components/shop/ShopControls";
 import { getProducts } from "@/lib/api/products";
 import { getCategories } from "@/lib/api/categories";
+import { getTags } from "@/lib/api/tags";
 import { sortProducts, prettifyTag } from "@/lib/product";
 
 export const metadata: Metadata = {
   title: "Shop All Sweets & Namkeen",
   description:
     "Browse the full range of Bhaktanjaneya Sweets — pure ghee sweets and crunchy namkeen, made fresh and delivered across India.",
-};
-
-const TAG_TITLES: Record<string, string> = {
-  "best-seller": "Best Sellers",
-  "top-pick": "Top Picks",
-  new: "New Arrivals",
-  combo: "Combos & Gifting",
 };
 
 function str(v: string | string[] | undefined): string {
@@ -30,9 +24,10 @@ export default async function ShopPage(props: PageProps<"/shop">) {
   const category = str(sp.category);
   const sort = str(sp.sort) || "featured";
 
-  const [all, categories] = await Promise.all([
+  const [all, categories, tags] = await Promise.all([
     getProducts(),
     getCategories(),
+    getTags(),
   ]);
 
   let items = all;
@@ -155,7 +150,9 @@ export default async function ShopPage(props: PageProps<"/shop">) {
   }
   items = sortProducts(items, sort);
 
-  const heading = tag ? TAG_TITLES[tag] ?? prettifyTag(tag) : "Shop All";
+  const heading = tag
+    ? tags.find((t) => t.slug === tag)?.name ?? prettifyTag(tag)
+    : "Shop All";
   const categoryName = categories.find((c) => c.slug === category)?.name;
 
   return (

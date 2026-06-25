@@ -22,23 +22,21 @@ export default async function HomePage() {
     getLiveInstagramReels(),
   ]);
 
-  // Build a carousel for each admin-featured tag. Falls back to a generic
-  // "Top Picks" rail if no tags are featured yet.
-  const tagRails = (
-    featuredTags.length
-      ? featuredTags.map((t) => ({
-          slug: t.slug,
-          title: t.name,
-          products: products.filter((p) => p.tags.includes(t.slug)),
-        }))
-      : [{ slug: "", title: "Top Picks", products: products.slice(0, 6) }]
-  )
-    // Drop empty rails, but keep at least one so the page never looks bare.
-    .filter((rail, i) => rail.products.length > 0 || i === 0)
-    .map((rail) => ({
-      ...rail,
-      products: rail.products.length ? rail.products : products.slice(0, 6),
-    }));
+  // Build a carousel for each admin-featured tag, keeping only those that
+  // actually have products so a featured tag never shows unrelated items.
+  const featuredRails = featuredTags
+    .map((t) => ({
+      slug: t.slug,
+      title: t.name,
+      products: products.filter((p) => p.tags.includes(t.slug)),
+    }))
+    .filter((rail) => rail.products.length > 0);
+
+  // Fall back to a generic "Top Picks" rail when nothing is featured yet (or no
+  // featured tag has products) so the home page never looks bare.
+  const tagRails = featuredRails.length
+    ? featuredRails
+    : [{ slug: "", title: "Top Picks", products: products.slice(0, 6) }];
 
   return (
     <>

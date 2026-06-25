@@ -18,6 +18,7 @@ import { formatINR, cn } from "@/lib/utils";
 import { defaultProductImage, getProductImage } from "@/lib/images";
 import { apiGet } from "@/lib/api/client";
 import { defaultVariant, toCartItem, priceRange } from "@/lib/product";
+import { recommendForBasket } from "@/lib/recommend";
 import type { Product } from "@/lib/types";
 
 // Fetch the catalogue once and share it across opens.
@@ -65,8 +66,13 @@ export function CartDrawer() {
   const remaining = Math.max(0, config.freeShippingThreshold - subtotal);
   const progress = Math.min(100, (subtotal / config.freeShippingThreshold) * 100);
 
-  const inCart = new Set(items.map((i) => i.productId));
-  const recommendations = products.filter((p) => !inCart.has(p.id)).slice(0, 6);
+  // Basket-aware recommendations: rank the catalogue by similarity to what's
+  // already in the cart (falls back to best-rated when the cart is empty).
+  const recommendations = recommendForBasket(
+    items.map((i) => i.productId),
+    products,
+    6,
+  );
 
   function addRecommendation(p: Product) {
     add(toCartItem(p, defaultVariant(p)));

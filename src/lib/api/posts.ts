@@ -1,16 +1,9 @@
 import type { Post } from "@/lib/types";
 import { postFromRow } from "@/lib/supabase/mappers";
 import { supabaseAdmin, isConfigured } from "@/lib/supabase/server";
-import { MOCK_POSTS } from "@/lib/mockData";
-
-function seedPosts(): Post[] {
-  return MOCK_POSTS;
-}
 
 export async function getPosts(): Promise<Post[]> {
-  if (!isConfigured) {
-    return seedPosts();
-  }
+  if (!isConfigured) return [];
   const { data, error } = await supabaseAdmin
     .from("posts")
     .select("*")
@@ -18,17 +11,14 @@ export async function getPosts(): Promise<Post[]> {
     .order("date", { ascending: false });
 
   if (error) {
-    console.warn("posts table unavailable, using seed posts:", error.message);
-    return seedPosts();
+    console.warn("posts table unavailable:", error.message);
+    return [];
   }
-  const posts = (data ?? []).map((row) => postFromRow(row));
-  return posts.length ? posts : seedPosts();
+  return (data ?? []).map((row) => postFromRow(row));
 }
 
 export async function getPost(slug: string): Promise<Post | null> {
-  if (!isConfigured) {
-    return seedPosts().find((p) => p.slug === slug) ?? null;
-  }
+  if (!isConfigured) return null;
   const { data, error } = await supabaseAdmin
     .from("posts")
     .select("*")
@@ -38,8 +28,8 @@ export async function getPost(slug: string): Promise<Post | null> {
     .maybeSingle();
 
   if (error) {
-    console.warn("posts table unavailable, using seed posts:", error.message);
-    return seedPosts().find((p) => p.slug === slug) ?? null;
+    console.warn("posts table unavailable:", error.message);
+    return null;
   }
-  return data ? postFromRow(data) : (seedPosts().find((p) => p.slug === slug) ?? null);
+  return data ? postFromRow(data) : null;
 }

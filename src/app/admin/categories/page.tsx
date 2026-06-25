@@ -15,6 +15,7 @@ import {
   inputClass,
 } from "@/components/admin/ui";
 import { uid, betterSlugify } from "@/lib/utils";
+import { config } from "@/lib/config";
 import type { Category, Tag } from "@/lib/types";
 import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
 import { toast } from "@/components/ui/toast";
@@ -204,10 +205,13 @@ function CategoryEditor({
 
 function TagEditor({
   tag,
+  otherFeaturedCount,
   onSave,
   onClose,
 }: {
   tag: Tag | null;
+  /** Number of OTHER tags already featured on the home page. */
+  otherFeaturedCount: number;
   onSave: (t: Tag) => void;
   onClose: () => void;
 }) {
@@ -223,9 +227,29 @@ function TagEditor({
   );
   const [error, setError] = useState("");
 
+  // Featuring this tag would exceed the cap only when the slots are already
+  // full with OTHER tags (editing an already-featured tag stays allowed).
+  const featuredLimitReached = otherFeaturedCount >= config.maxFeaturedTags;
+
+  function toggleFeatured(next: boolean) {
+    if (next && featuredLimitReached) {
+      setError(
+        `Only ${config.maxFeaturedTags} tags can be featured on the home page. Unfeature another tag first.`,
+      );
+      return;
+    }
+    setError("");
+    setDraft((d) => ({ ...d, featured: next }));
+  }
+
   function save() {
     const name = draft.name.trim();
     if (!name) return setError("Tag name is required.");
+    if (draft.featured && featuredLimitReached) {
+      return setError(
+        `Only ${config.maxFeaturedTags} tags can be featured on the home page. Unfeature another tag first.`,
+      );
+    }
     onSave({
       ...draft,
       name,
@@ -279,16 +303,19 @@ function TagEditor({
 
         <Field
           label="Feature on home page"
-          hint="Featured tags get their own carousel on the home page."
+          hint={`Featured tags get their own carousel on the home page. Up to ${config.maxFeaturedTags} tags can be featured (${otherFeaturedCount + (draft.featured ? 1 : 0)}/${config.maxFeaturedTags} used).`}
         >
           <Toggle
             checked={!!draft.featured}
-            onChange={(v) => setDraft((d) => ({ ...d, featured: v }))}
+            onChange={toggleFeatured}
             label={draft.featured ? "Shown on home page" : "Hidden from home page"}
           />
         </Field>
 
-        <Field label="Sort order">
+        <Field
+          label="Sort order"
+          hint="Lower numbers appear first on the home page; higher numbers last."
+        >
           <input
             className={inputClass}
             type="number"
@@ -524,8 +551,9 @@ export default function AdminCategoriesPage() {
               Tags
             </h2>
             <p className="text-sm text-ink-500">
-              Merchandising labels like Best Sellers and Top Picks. Featured tags
-              get their own carousel on the home page.
+              Merchandising labels like Best Sellers and Top Picks. Up to{" "}
+              {config.maxFeaturedTags} featured tags get their own carousel on the
+              home page, ordered by sort order (lowest first).
             </p>
           </div>
 
@@ -610,6 +638,9 @@ export default function AdminCategoriesPage() {
       {editingTag || creatingTag ? (
         <TagEditor
           tag={editingTag}
+          otherFeaturedCount={
+            tags.filter((t) => t.featured && t.id !== editingTag?.id).length
+          }
           onSave={(t) => {
             saveTag(t);
             setEditingTag(null);

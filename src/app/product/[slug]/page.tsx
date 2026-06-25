@@ -7,12 +7,9 @@ import { Rating } from "@/components/ui/Rating";
 import { ProductGallery } from "@/components/product/ProductGallery";
 import { ProductPurchasePanel } from "@/components/product/ProductPurchasePanel";
 import { ProductCarousel } from "@/components/product/ProductCarousel";
-import {
-  getProducts,
-  getProductBySlug,
-  getProductsByCategory,
-} from "@/lib/api/products";
+import { getProducts, getProductBySlug } from "@/lib/api/products";
 import { priceRange } from "@/lib/product";
+import { recommendForProduct } from "@/lib/recommend";
 
 export async function generateStaticParams() {
   const products = await getProducts();
@@ -43,9 +40,9 @@ export default async function ProductPage(props: PageProps<"/product/[slug]">) {
   const product = await getProductBySlug(slug);
   if (!product || !product.active) notFound();
 
-  const related = (await getProductsByCategory(product.category)).filter(
-    (p) => p.id !== product.id,
-  );
+  // Rank the whole catalogue by similarity (shared categories, tags, price,
+  // rating) rather than just listing the same category in name order.
+  const related = recommendForProduct(product, await getProducts(), 8);
   const { min, max } = priceRange(product);
 
   const jsonLd = {

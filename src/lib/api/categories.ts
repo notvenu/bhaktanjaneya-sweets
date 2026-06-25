@@ -1,16 +1,13 @@
 import type { Category } from "@/lib/types";
 import { categoryFromRow } from "@/lib/supabase/mappers";
 import { supabaseAdmin, isConfigured } from "@/lib/supabase/server";
-import { MOCK_CATEGORIES } from "@/lib/mockData";
 
 function throwIfSupabaseError(error: { message: string } | null) {
   if (error) throw new Error(error.message);
 }
 
 export async function getCategories(): Promise<Category[]> {
-  if (!isConfigured) {
-    return MOCK_CATEGORIES;
-  }
+  if (!isConfigured) return [];
   const { data, error } = await supabaseAdmin
     .from("categories")
     .select("*")
@@ -20,9 +17,7 @@ export async function getCategories(): Promise<Category[]> {
 }
 
 export async function getCategory(slug: string): Promise<Category | null> {
-  if (!isConfigured) {
-    return MOCK_CATEGORIES.find((c) => c.slug === slug) ?? null;
-  }
+  if (!isConfigured) return null;
   const { data, error } = await supabaseAdmin
     .from("categories")
     .select("*")

@@ -29,6 +29,9 @@ export const config = {
     Boolean(process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID) &&
     process.env.NODE_ENV !== "test",
 
+  /** Max number of tags that can be featured as carousels on the home page. */
+  maxFeaturedTags: 2,
+
   currency: "INR" as const,
   freeShippingThreshold: 700,
   /** Flat delivery fee (INR) when cart is below freeShippingThreshold. */
