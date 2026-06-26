@@ -1,16 +1,18 @@
 @import "tailwindcss";
 
 @theme {
-  /* Brand palette — warm, traditional Indian sweets */
-  --color-cream-50: #fffaf3;
-  --color-cream-100: #fff3e3;
-  --color-cream-200: #f8e8d2;
-  --color-cream-300: #f0d8ba;
+  /* Brand palette — golden-white canvas, pistachio + gold accents, espresso ink */
+  --color-cream-50: #fffdf7;
+  --color-cream-100: #fbf5e9;
+  --color-cream-200: #f2e9d6;
+  --color-cream-300: #e8dbc2;
 
-  --color-maroon-600: #8a1a2b;
-  --color-maroon-700: #74121f;
-  --color-maroon-800: #5d0e19;
-  --color-maroon-900: #470a13;
+  /* "maroon" scale — deep premium burgundy / wine, pairs with gold */
+  --color-maroon-600: #70313a;
+  --color-maroon-700: #5c252c;
+  --color-maroon-800: #4a1c22;
+  --color-maroon-900: #3a1419;
+  --color-maroon-950: #2a0d12;
 
   --color-saffron-300: #f8c06b;
   --color-saffron-400: #f4a73a;
@@ -24,6 +26,15 @@
   --color-leaf-500: #3a9461;
   --color-leaf-600: #2f7d4f;
 
+  /* Pistachio — soft, muted secondary accent (fresh, not lime) */
+  --color-pista-50: #f4f8ee;
+  --color-pista-100: #e7f0db;
+  --color-pista-200: #cfe0bb;
+  --color-pista-400: #9cbd79;
+  --color-pista-500: #6f9a50;
+  --color-pista-600: #547a3a;
+  --color-pista-700: #41602e;
+
   --color-ink-900: #2a1810;
   --color-ink-700: #4a3528;
   --color-ink-500: #6f5848;
@@ -32,13 +43,13 @@
   --font-sans: var(--font-body), ui-sans-serif, system-ui, sans-serif;
   --font-serif: var(--font-heading), ui-serif, Georgia, "Times New Roman", serif;
 
-  --shadow-card: 0 8px 30px -12px rgba(71, 10, 19, 0.22);
-  --shadow-soft: 0 2px 12px -4px rgba(71, 10, 19, 0.12);
+  --shadow-card: 0 8px 30px -12px rgba(46, 36, 23, 0.18);
+  --shadow-soft: 0 2px 12px -4px rgba(46, 36, 23, 0.10);
 }
 
 :root {
-  --background: #fffaf3;
-  --foreground: #2a1810;
+  --background: #fffdf7;
+  --foreground: #2e2417;
 }
 
 html {
@@ -178,6 +189,64 @@ body {
 .reel-progress {
   transform-origin: left;
   animation: reel-progress var(--reel-interval, 5s) linear forwards;
+}
+
+/* Gold "glowing border" for the welcome-offer banner. The wrapper carries a 2px
+   pad; ::before paints a conic gold gradient whose bright stop rotates around the
+   edge (the shimmer), and ::after is a soft pulsing gold halo just outside it.
+   The card sits on top and covers all but the 2px frame. Reduced-motion (below)
+   freezes both into a static gold glow. */
+@property --offer-angle {
+  syntax: "<angle>";
+  initial-value: 0deg;
+  inherits: false;
+}
+@keyframes offer-shimmer {
+  to {
+    --offer-angle: 360deg;
+  }
+}
+@keyframes offer-halo {
+  0%,
+  100% {
+    opacity: 0.3;
+  }
+  50% {
+    opacity: 0.6;
+  }
+}
+.offer-glow::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  border-radius: inherit;
+  background: conic-gradient(
+    from var(--offer-angle),
+    var(--color-gold-600),
+    var(--color-gold-400),
+    #f5dd95,
+    var(--color-gold-400),
+    var(--color-gold-600),
+    var(--color-gold-500),
+    var(--color-gold-600)
+  );
+  animation: offer-shimmer 6s linear infinite;
+}
+.offer-glow::after {
+  content: "";
+  position: absolute;
+  inset: -8px;
+  z-index: -2;
+  border-radius: inherit;
+  background: radial-gradient(
+    closest-side,
+    rgba(201, 150, 30, 0.5),
+    rgba(201, 150, 30, 0)
+  );
+  filter: blur(14px);
+  opacity: 0.4;
+  animation: offer-halo 3.4s ease-in-out infinite;
 }
 
 /* Respect users who prefer reduced motion (vestibular safety, WCAG 2.3.3). */
