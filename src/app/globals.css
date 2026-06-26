@@ -7,12 +7,12 @@
   --color-cream-200: #f2e9d6;
   --color-cream-300: #e8dbc2;
 
-  /* "maroon" scale — deep premium burgundy / wine, pairs with gold */
-  --color-maroon-600: #70313a;
-  --color-maroon-700: #5c252c;
-  --color-maroon-800: #4a1c22;
-  --color-maroon-900: #3a1419;
-  --color-maroon-950: #2a0d12;
+  /* "maroon" scale — dark rusty red-brown, glossy, pairs with gold accents */
+  --color-maroon-600: #9a5238;
+  --color-maroon-700: #84432b;
+  --color-maroon-800: #6b3220;
+  --color-maroon-900: #56281a;
+  --color-maroon-950: #421d12;
 
   --color-saffron-300: #f8c06b;
   --color-saffron-400: #f4a73a;
@@ -191,62 +191,28 @@ body {
   animation: reel-progress var(--reel-interval, 5s) linear forwards;
 }
 
-/* Gold "glowing border" for the welcome-offer banner. The wrapper carries a 2px
-   pad; ::before paints a conic gold gradient whose bright stop rotates around the
-   edge (the shimmer), and ::after is a soft pulsing gold halo just outside it.
-   The card sits on top and covers all but the 2px frame. Reduced-motion (below)
-   freezes both into a static gold glow. */
-@property --offer-angle {
-  syntax: "<angle>";
-  initial-value: 0deg;
-  inherits: false;
-}
-@keyframes offer-shimmer {
-  to {
-    --offer-angle: 360deg;
-  }
-}
+/* Pulsing gold halo for the welcome-offer banner — a soft gold glow around the
+   card edge that gently breathes. Pure box-shadow, so it renders AND animates in
+   every browser (incl. Safari / iOS, where the old @property shimmer did not).
+   The base shadow (--shadow-card) is folded in so the card keeps its depth.
+   Reduced-motion (below) freezes it to a steady gold glow. */
 @keyframes offer-halo {
   0%,
   100% {
-    opacity: 0.3;
+    box-shadow:
+      var(--shadow-card),
+      0 0 22px 2px rgba(201, 150, 30, 0.45),
+      0 0 8px 0 rgba(245, 221, 149, 0.5);
   }
   50% {
-    opacity: 0.6;
+    box-shadow:
+      var(--shadow-card),
+      0 0 54px 13px rgba(201, 150, 30, 0.72),
+      0 0 18px 2px rgba(245, 221, 149, 0.92);
   }
 }
-.offer-glow::before {
-  content: "";
-  position: absolute;
-  inset: 0;
-  z-index: -1;
-  border-radius: inherit;
-  background: conic-gradient(
-    from var(--offer-angle),
-    var(--color-gold-600),
-    var(--color-gold-400),
-    #f5dd95,
-    var(--color-gold-400),
-    var(--color-gold-600),
-    var(--color-gold-500),
-    var(--color-gold-600)
-  );
-  animation: offer-shimmer 6s linear infinite;
-}
-.offer-glow::after {
-  content: "";
-  position: absolute;
-  inset: -8px;
-  z-index: -2;
-  border-radius: inherit;
-  background: radial-gradient(
-    closest-side,
-    rgba(201, 150, 30, 0.5),
-    rgba(201, 150, 30, 0)
-  );
-  filter: blur(14px);
-  opacity: 0.4;
-  animation: offer-halo 3.4s ease-in-out infinite;
+.offer-glow {
+  animation: offer-halo 3.2s ease-in-out infinite;
 }
 
 /* Respect users who prefer reduced motion (vestibular safety, WCAG 2.3.3). */

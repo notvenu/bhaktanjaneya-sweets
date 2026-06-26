@@ -6,8 +6,7 @@ export function OfferBanner() {
   return (
     <section className="py-12">
       <Container>
-        <div className="offer-glow relative isolate rounded-[18px] p-[2px]">
-          <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-maroon-800 via-maroon-900 to-maroon-950 px-6 py-12 text-center shadow-card sm:px-12">
+        <div className="offer-glow relative overflow-hidden rounded-2xl bg-gradient-to-br from-maroon-800 via-maroon-900 to-maroon-950 px-6 py-12 text-center sm:px-12">
           <div className="pointer-events-none absolute -right-10 -top-10 h-48 w-48 rounded-full bg-gold-500/15 blur-2xl" />
           <div className="pointer-events-none absolute -bottom-12 -left-8 h-48 w-48 rounded-full bg-pista-500/12 blur-2xl" />
           <div className="relative mx-auto max-w-2xl">
@@ -30,7 +29,6 @@ export function OfferBanner() {
             >
               Shop now <ArrowRight size={18} />
             </Link>
-          </div>
           </div>
         </div>
       </Container>
